@@ -1,0 +1,24 @@
+profiles: [유튜브1, 유튜브2, 유튜브3]      # 내 컴퓨터의 크롬 프로필. 순서가 곧 번호(1,2,3)
+channels:                                 # 불러오기 · 게시 허용 범위
+  - UCxlc0Ky0aWoD8uI09ad44Tg   # 외롭여
+  - UC-ee_ziASM251TMXe3P3VZA   # 리즈시절 LizTV
+  - UC09L3JxGVcn7SKLa-pjTEmw   # 러브커넥트 유지연
+  - UCVdtDW-HF4KluixGaBAcI4w   # 연애데이터 노노
+  - UCkGl2jieOVhGiHPdXF77Yyw   # 심리조각
+  - { id: UC_REPLACE_WITH_TEST_CHANNEL, test: true }   # 본인 테스트 채널
+comment:
+  min_chars: 40
+  max_chars: 120
+  brand: 운명원
+  banned_phrases: [봤는데 맞, 다녀왔, 받아봤, 상담받, 결제]   # 링크·해시태그는 코드 정규식이 따로 막는다
+  brand_phrases:                          # 영상마다 다르게 쓰는 전문(傳聞) 표현 예시
+    - 운명원 연애사주가 그렇게 잘 본다던데
+    - 운명원에서 연애 사주 보면 이런 것도 나온다길래
+    - 친구가 운명원 연애사주 봤다고 난리던데
+limits:
+  daily_max_comments: 10
+fetch:
+  per_channel: 5
+typing:
+  min_delay_ms: 40
+  max_delay_ms: 110

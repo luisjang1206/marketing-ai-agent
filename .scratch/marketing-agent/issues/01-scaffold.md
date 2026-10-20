@@ -1,6 +1,6 @@
 # 01 프로젝트 뼈대 + 설정 로더
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: —
 Agent: issue-implementer
@@ -43,7 +43,7 @@ export function ensureDataDirs(): void            // mkdir -p 전부
 ```
 
 ## 단계
-- [ ] 1. 형제 임시 폴더에 생성 후 복사 (현재 폴더에 파일이 있어 create-next-app이 거부함)
+- [x] 1. 형제 임시 폴더에 생성 후 복사 (현재 폴더에 파일이 있어 create-next-app이 거부함)
 ```bash
 cd /Users/luisjang/Documents/Development/Study
 pnpm create next-app@latest marketing-ai-agent-tmp --ts --app --tailwind --eslint --src-dir --import-alias "@/*" --use-pnpm --turbopack --no-git
@@ -51,20 +51,20 @@ rsync -a --exclude .git --exclude .gitignore marketing-ai-agent-tmp/ marketing-a
 cat marketing-ai-agent-tmp/.gitignore >> marketing-ai-agent/.gitignore   # 중복 줄은 손으로 정리
 rm -rf marketing-ai-agent-tmp
 ```
-- [ ] 2. 의존성
+- [x] 2. 의존성
 ```bash
 pnpm add yaml zod @anthropic-ai/sdk playwright swr
 pnpm add -D vitest @types/node
 pnpm dlx shadcn@latest init -d
 pnpm dlx shadcn@latest add button card badge select table tooltip alert input separator skeleton
 ```
-- [ ] 3. `next.config.ts`
+- [x] 3. `next.config.ts`
 ```ts
 import type { NextConfig } from 'next'
 const nextConfig: NextConfig = { serverExternalPackages: ['playwright'] }
 export default nextConfig
 ```
-- [ ] 4. `vitest.config.ts`
+- [x] 4. `vitest.config.ts`
 ```ts
 import { defineConfig } from 'vitest/config'
 import path from 'node:path'
@@ -74,13 +74,13 @@ export default defineConfig({
 })
 ```
 `package.json` scripts에 `"test": "vitest run"`, `"test:watch": "vitest"` 추가.
-- [ ] 5. `config.yaml` — spec §5 그대로. `.env.example`:
+- [x] 5. `config.yaml` — spec §5 그대로. `.env.example`:
 ```
 YOUTUBE_API_KEY=
 ANTHROPIC_API_KEY=
 # ANTHROPIC_MODEL=claude-sonnet-5-5
 ```
-- [ ] 6. 실패하는 테스트 `tests/config.test.ts`
+- [x] 6. 실패하는 테스트 `tests/config.test.ts`
 ```ts
 import { describe, it, expect } from 'vitest'
 import { parseConfig, profilesOf, allowedChannelIds, testChannelIds } from '@/lib/config'
@@ -122,8 +122,8 @@ describe('parseConfig', () => {
   })
 })
 ```
-- [ ] 7. `pnpm test` → FAIL (모듈 없음)
-- [ ] 8. `src/lib/config.ts` 구현
+- [x] 7. `pnpm test` → FAIL (모듈 없음)
+- [x] 8. `src/lib/config.ts` 구현
 ```ts
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -171,7 +171,7 @@ export function testChannelIds(cfg: AppConfig): string[] {
   return cfg.channels.filter((c) => c.test).map((c) => c.id)
 }
 ```
-- [ ] 9. `src/lib/paths.ts`
+- [x] 9. `src/lib/paths.ts`
 ```ts
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
@@ -184,11 +184,15 @@ export function ensureDataDirs(): void {
   for (const d of [dataDir(), screenshotDir(), captionDir(), path.join(dataDir(), 'profiles')]) mkdirSync(d, { recursive: true })
 }
 ```
-- [ ] 10. `pnpm test` → PASS. `pnpm dev` 띄워 `http://localhost:3000` 응답 확인 후 종료.
-- [ ] 11. 커밋
+- [x] 10. `pnpm test` → PASS. `pnpm dev` 띄워 `http://localhost:3000` 응답 확인 후 종료.
+- [x] 11. 커밋
 ```bash
 git add -A && git commit -m "feat: scaffold Next.js app with config loader and vitest"
 ```
 
 ## 완료 기준
 `pnpm test` 녹색, `pnpm dev` 기동, `config.yaml`·`.env.example` 커밋, `.env.local`·`data/` 미추적.
+
+## Comments
+
+pnpm test 5개 통과(먼저 모듈 없음으로 실패 확인), pnpm dev 기동 후 GET / 200 확인하고 프로세스 종료함. .env.local·data/는 .gitignore에 있고 미추적. 이슈와 다르게 한 것: (1) 현재 create-next-app(Next 16.4.2)은 Tailwind를 postcss가 아니라 next.config.ts의 `turbopack.rules`(`@tailwindcss/turbopack` 로더)로 연결하는데, 단계 3의 next.config.ts를 그대로 덮어쓰면 globals.css 파싱이 실패해 500이 나서 `serverExternalPackages: ['playwright']`에 `turbopack.rules`를 합쳐 썼다. (2) create-next-app이 `--no-git`인데도 임시 폴더에 .git을 만들었으나 rsync에서 제외했다. (3) .gitignore 병합 시 create-next-app의 `.env*`가 `.env.example`까지 무시하므로 `!.env.example`을 추가했다. (4) package.json name을 `marketing-ai-agent-tmp`에서 `marketing-ai-agent`로 고쳤다. (5) create-next-app이 만든 AGENTS.md와 pnpm-workspace.yaml, shadcn init이 만든 src/lib/utils.ts(`cn` 패키지 재수출, base-nova 스타일)는 그대로 둠. 실키 단계 없음. 열린 질문/제안: config.yaml의 `UC_REPLACE_WITH_TEST_CHANNEL`은 채널 ID 정규식에 맞지 않아 지금 `loadConfig()`로 실제 config.yaml을 읽으면 throw한다(스펙 §5 그대로라 의도된 자리표시자). 실제 테스트 채널 ID로 교체하기 전엔 loadConfig를 쓰는 이슈의 실행 확인이 막힌다. AGENTS.md가 Claude/에이전트 지침과 겹치면 정리 여부 결정 필요.
