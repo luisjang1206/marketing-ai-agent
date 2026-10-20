@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Type: task
-Blocked by: 04, 05, 06, 08
+Blocked by: 04, 05, 06, 08, 13
 Agent: issue-implementer
 Model: sonnet
 
@@ -19,7 +19,7 @@ spec §4의 Route Handler 전부. 얇게: 입력 검증 → lib 호출 → JSON.
 | GET `/api/config` | — | 공개 설정 | `{ profiles: Profile[], dailyMax, allowedChannelIds, testChannelIds, comment: {min,max,brand} }` |
 | GET `/api/videos` | `?refresh=1` | refresh면 `listLatestVideos(allowedChannelIds, per_channel)` → `upsertVideos(source:'list')`. 항상 `listVideos` + 각 영상 `captionSource`·`hasDraft` | `{ videos: VideoView[] }` |
 | POST `/api/videos` | `{ url }` | `parseVideoId` 실패 → 400 `invalid_url`. `getVideo` null → 404. 채널이 허용 밖 → `insertPost(blocked, not_allowed_channel)` 후 409. 아니면 `upsertVideos(source:'direct')` | `{ video }` |
-| POST `/api/videos/[id]/draft` | `{ regenerate?: boolean }` | 캐시된 유효 초안 있고 regenerate 아님 → 그대로. 아니면 자막(`fetchCaptions` → `saveCaptions`) + 인기 댓글 → `generateDraft` → `insertDraft` | `{ draft: DraftRow, captionSource }` |
+| POST `/api/videos/[id]/draft` | `{ regenerate?: boolean }` | 캐시된 유효 초안 있고 regenerate 아님 → 그대로. 아니면 자막(`fetchCaptions` → `saveCaptions`) + 인기 댓글 + `recentDrafts: recentChannelDraftTexts(db, video.channel_id)`(이슈 13, 재생성이면 같은 영상 이전 초안 포함) → `generateDraft` → `insertDraft` | `{ draft: DraftRow, captionSource }` |
 | POST `/api/posts` | `{ videoId, profileId? }` | `startPostJob(body, { db, cfg, post: postComment, today })` | 202 `{ jobId }` / 409·400 `{ reason, message }` |
 | GET `/api/posts/[jobId]` | — | `getJob` | `{ job }` / 404 |
 | GET `/api/log` | — | `listPosts(100)`, `successCountToday`, `postedVideoIds`, `activeJob` | `{ posts, todayCount, postedVideoIds, activeJobId }` |
