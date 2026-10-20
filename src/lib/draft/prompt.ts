@@ -114,8 +114,12 @@ function shapeOf(title: string, recent: string[]): number[] {
   if (!recent.length) return DIMS.map((d) => seed(d.salt + title) % d.opts.length)
   const prev = shapeOf(title, recent.slice(1))
   return DIMS.map((d, i) => {
-    // 우선순위: 직전 짜임(prev)이 아님 > 최근 초안이 안 쓴 꼴 > 가장 오래전에 쓴 꼴 > seed 순서
-    const usedAt = (k: number) => { const j = recent.findIndex((t) => classesOf(d, t).includes(k)); return j < 0 ? Infinity : j }
+    // 우선순위: 직전 짜임(prev)이 아님 > 최근 초안이 안 쓴 꼴 > 가장 오래전에 쓴 꼴 > seed 순서.
+    // test 없는 나머지 꼴(장면 시작·담담한 끝)은 모델의 기본 뼈대라 판별이 안 되므로, 최근 초안이 있으면 방금 쓴 것으로 친다.
+    const usedAt = (k: number) => {
+      if (!d.opts[k].test) return -1
+      const j = recent.findIndex((t) => classesOf(d, t).includes(k)); return j < 0 ? Infinity : j
+    }
     const start = seed(d.salt + title + '\n' + recent.join('\n'))
     const order = d.opts.map((_, k) => (start + k) % d.opts.length)
     return [...order].sort((x, y) => Number(x === prev[i]) - Number(y === prev[i]) || usedAt(y) - usedAt(x))[0]
