@@ -1,6 +1,6 @@
 // 클라이언트 전용: fetch 래퍼와 swr 키만 둔다. 서버 모듈(db, repo, playwright, 어댑터)은 가져오지 않는다.
 // 응답 타입은 `import type` 으로만 가져와 번들에 들어가지 않게 한다.
-import type { ApiError, ApiReason, DraftResponse, PostStartResponse, ProfileResponse, VideoResponse, VideosResponse } from '@/lib/api-types'
+import type { ApiError, ApiReason, DraftResponse, PostStartResponse, ProfileResponse, VideoResponse, VideosResponse } from '../api-types'
 
 export class ApiRequestError extends Error {
   status: number
@@ -15,7 +15,7 @@ export class ApiRequestError extends Error {
 
 export const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err))
 
-// Route Handler 는 실패하면 `{ reason, message }` 를 돌려준다. 그 message(한국어)를 그대로 예외 메시지로 쓴다.
+// Route Handler 는 실패하면 `{ reason, message }` 를 돌려준다. 그 message(한국어)를 그대로 오류 메시지로 쓴다.
 async function request<T>(url: string, init: { method?: 'GET' | 'POST'; body?: unknown } = {}): Promise<T> {
   let res: Response
   try {

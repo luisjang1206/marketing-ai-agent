@@ -51,8 +51,16 @@ export default function Home() {
   const [starting, setStarting] = useState(false)
   const [postError, setPostError] = useState<string | null>(null)
 
-  // 진행 중인 게시(다른 탭에서 시작했거나 새로고침한 경우 포함)가 있으면 그것을 따라간다.
-  const currentJobId = log?.activeJobId ?? jobId
+  // 새로고침했거나 다른 탭에서 시작해 서버에 진행 중인 게시가 있으면 그 jobId 를 이어받는다(새로 보인 id 마다 한 번).
+  // jobId 를 기억해 두므로, 작업이 끝나 log.activeJobId 가 비어도 캡처·영상 링크·실패 사유가 화면에 남는다.
+  // 이 탭에서 시작한 게시는 post() 가 jobId 를 정하므로 이 분기를 타지 않거나, 타도 같은 값으로 덮어쓸 뿐이다.
+  const activeJobId = log?.activeJobId ?? null
+  const [adoptedActiveId, setAdoptedActiveId] = useState<string | null>(null)
+  if (activeJobId && activeJobId !== adoptedActiveId) {
+    setAdoptedActiveId(activeJobId)
+    setJobId(activeJobId)
+  }
+  const currentJobId = jobId
   const { data: jobData, error: jobError } = useSWR<JobResponse>(currentJobId ? KEYS.job(currentJobId) : null, fetcher, {
     // 끝났거나 읽지 못하면 멈춘다. 끝나면 게시 기록과 오늘 카운트를 바로 갱신한다.
     refreshInterval: (latest) => (latest && !isJobDone(latest.job.state) ? 500 : 0),
@@ -67,7 +75,9 @@ export default function Home() {
 
   const videos = videosData?.videos ?? []
   const postedIds = log?.postedVideoIds ?? []
-  const selectedId = pickedId ?? (job && !isJobDone(job.state) ? job.video_id : null)
+  // 영상을 고르지 않은 채 이어받은 작업이면 그 영상을 골라 둔다. 작업이 끝난 뒤에도 ②③ 칸이 비지 않는다.
+  if (job && pickedId === null) setPickedId(job.video_id)
+  const selectedId = pickedId
   const video = videos.find((v) => v.id === selectedId) ?? null
 
   const { data: draftData, error: draftError, isLoading: draftLoading } = useSWR<DraftResponse>(

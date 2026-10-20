@@ -7,6 +7,9 @@ import type { PostLogRow } from './repo/posts'
 import type { VideoRow } from './repo/videos'
 import type { StartResult } from './jobs/runner'
 
+// UI 가 posts.reason(실패 사유 코드)의 키를 맞출 수 있게 타입만 다시 내보낸다. 클라이언트는 어댑터 모듈 대신 이 파일에서 가져온다.
+export type { FailureReason } from './browser/poster'
+
 // 게시 시작이 거절되는 사유: 운영 규칙 코드 + busy · no_profile · video_not_found · no_draft · invalid_draft (runner 가 정한다).
 export type StartFailReason = Extract<StartResult, { ok: false }>['reason']
 // Route Handler 가 돌려주는 사유 코드 전부. 값을 더하면 여기에도 더한다.

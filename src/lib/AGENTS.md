@@ -26,7 +26,7 @@ src/lib/
   draft/               prompt.ts, validate.ts (pure), generate.ts -- issue 06 (planned)
   browser/             launch.ts, profiles.ts, poster.ts          -- issues 07, 08 (planned)
   jobs/runner.ts       startPostJob(), runPostJob()               -- issue 08 (planned)
-  client/api.ts        fetch wrapper + swr keys                   -- issue 10 (planned)
+  client/api.ts        fetch wrapper + swr keys (client only)     -- issue 10
 ```
 
 ## Tech Stack & Constraints

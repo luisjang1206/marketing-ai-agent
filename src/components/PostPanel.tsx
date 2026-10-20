@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { Check, CircleAlert, ExternalLink, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { LoginBadge } from '@/components/ProfileCard'
 import type { JobResponse, ProfileView } from '@/lib/api-types'
 import { screenshotUrl, watchUrl } from '@/lib/client/api'
 import type { RuleVerdict } from '@/lib/rules'
@@ -87,15 +87,11 @@ function Capture({ screenshotPath }: { screenshotPath: string | null }) {
   if (!src) return null
   return (
     <a href={src} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg ring-1 ring-foreground/10" title="캡처를 새 탭에서 열기">
-      {/* 같은 출처의 캡처 파일이라 next/image 최적화는 쓰지 않는다. */}
+      {/* 같은 서버가 내주는 캡처 파일이라 next/image 최적화는 쓰지 않는다. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="게시 결과 화면 캡처" className="max-h-72 w-full bg-muted object-contain object-top" />
     </a>
   )
-}
-
-function LoginBadge({ loggedIn }: { loggedIn: boolean }) {
-  return loggedIn ? <Badge className="bg-emerald-100 text-emerald-900">로그인됨</Badge> : <Badge variant="outline">로그인 필요</Badge>
 }
 
 // 댓글 달기 버튼을 못 누르는 이유. 위에서부터 먼저 걸리는 것 하나만 말한다.

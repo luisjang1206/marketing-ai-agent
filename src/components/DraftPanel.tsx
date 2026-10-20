@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 type DraftRow = DraftResponse['draft']
 type CaptionSource = DraftResponse['captionSource']
 
-// maxChars 는 이슈의 컴포넌트 계약에 없는 선택 속성이다: 글자수 "N/120" 의 120 을 설정(comment.max_chars)에서 받는다.
+// maxChars 는 이슈의 컴포넌트 계약에 없는 선택 속성이다: 글자수 "N/최대" 의 최대를 설정(comment.max_chars)에서만 받는다. 설정을 아직 못 읽었으면 분모 없이 "글자수 N" 만 보인다.
 type Props = {
   video: VideoView | null
   draft: DraftRow | null
@@ -32,7 +32,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-export function DraftPanel({ video, draft, captionSource, loading, onRegenerate, maxChars = 120 }: Props) {
+export function DraftPanel({ video, draft, captionSource, loading, onRegenerate, maxChars }: Props) {
   if (!video) {
     return (
       <Card className="min-w-0">
@@ -95,9 +95,17 @@ export function DraftPanel({ video, draft, captionSource, loading, onRegenerate,
             <Field label="댓글 초안">
               <div className="rounded-lg border bg-muted/40 p-3 text-sm leading-relaxed break-words whitespace-pre-wrap">{draft.text}</div>
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-muted-foreground">{captionSource === 'subtitle' ? '자막을 읽고 쓴 초안' : captionSource === 'none' ? '자막 없음' : ''}</span>
-                <span className={cn('tabular-nums', lengthBad ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-                  글자수 {length}/{maxChars}
+                {/* 스펙 §7.1: "자막 있음 / 자막 없음 → 제목·설명·댓글로 작성". 자막을 아직 확인하지 못했으면(null) 배지를 달지 않는다. */}
+                {captionSource === 'subtitle' ? (
+                  <Badge variant="outline">자막 있음</Badge>
+                ) : captionSource === 'none' ? (
+                  <Badge variant="outline">자막 없음 → 제목·설명·댓글로 작성</Badge>
+                ) : (
+                  <span />
+                )}
+                <span className={cn('shrink-0 tabular-nums', lengthBad ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+                  글자수 {length}
+                  {maxChars !== undefined && `/${maxChars}`}
                 </span>
               </div>
             </Field>

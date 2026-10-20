@@ -24,7 +24,7 @@ export default function SettingsPage() {
     }
   }
 
-  // 실패하면 예외를 그대로 올려, 카드가 자기 안에 메시지를 보여준다.
+  // 실패하면 오류를 그대로 올려 보내, 카드가 자기 안에 메시지를 보여준다.
   async function check(profileId: string) {
     await checkProfileLogin(profileId)
     await mutate()

@@ -3,10 +3,9 @@
 import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import type { LogResponse } from '@/lib/api-types'
+import type { FailureReason, LogResponse } from '@/lib/api-types'
 import { screenshotUrl, watchUrl } from '@/lib/client/api'
 import type { RuleReason } from '@/lib/rules'
-import type { FailureReason } from '@/lib/browser/poster'
 
 // 클라이언트 파일은 repo 모듈을 가져오지 않는다. 같은 타입을 api-types 응답에서 꺼낸다.
 type PostLogRow = LogResponse['posts'][number]
@@ -16,7 +15,7 @@ type Props = { rows: PostLogRow[]; profileLabels?: Record<string, string> }
 
 // 차단은 운영 규칙 코드, 실패는 실패 사유 코드가 posts.reason 에 들어간다.
 // 실패 사유 라벨은 poster.ts 의 FAILURE_LABELS 와 같은 문구다. 그 모듈은 playwright 를 가져와 클라이언트에서 쓸 수 없어
-// 타입(import type, 번들에 남지 않음)만 가져와 키 누락을 컴파일 때 잡는다.
+// 타입만 api-types 를 거쳐 가져오고(번들에 남지 않음), 키가 빠지면 컴파일에서 잡는다.
 const REASON_LABELS: Record<RuleReason | FailureReason, string> = {
   not_allowed_channel: '허용 채널의 영상이 아님',
   already_posted: '이미 댓글을 단 영상',

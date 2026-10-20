@@ -102,7 +102,7 @@ export function VideoList({ videos, selectedId, postedIds, loading, onFetch, onS
         </div>
 
         {videos.length > 0 && (
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="채널 필터">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="채널별 보기">
             {chip('all', '전체', videos.length)}
             {hasTest && chip('test', '테스트', videos.filter((v) => v.isTestChannel).length)}
             {channels.map(([id, title]) => chip(id, title, videos.filter((v) => v.channel_id === id).length))}

@@ -11,6 +11,11 @@ import { errorMessage } from '@/lib/client/api'
 // 프로필 하나의 로그인 상태와 [로그인 창 열기] · [상태 확인]. 상태 확인이 실패하면 그 메시지를 카드 안에 보여준다.
 type Props = { profile: ProfileView; onOpenLogin(): void; onCheck(): Promise<void> }
 
+// 프로필의 로그인 상태 배지. 설정 화면(ProfileCard)과 대시보드의 프로필 Select(PostPanel)가 함께 쓴다.
+export function LoginBadge({ loggedIn }: { loggedIn: boolean }) {
+  return loggedIn ? <Badge className="bg-emerald-100 text-emerald-900">로그인됨</Badge> : <Badge variant="outline">로그인 필요</Badge>
+}
+
 export function ProfileCard({ profile, onOpenLogin, onCheck }: Props) {
   const [checking, setChecking] = useState(false)
   const [opened, setOpened] = useState(false)
@@ -33,7 +38,7 @@ export function ProfileCard({ profile, onOpenLogin, onCheck }: Props) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <span className="truncate">{profile.label}</span>
-          {profile.loggedIn ? <Badge className="bg-emerald-100 text-emerald-900">로그인됨</Badge> : <Badge variant="outline">로그인 필요</Badge>}
+          <LoginBadge loggedIn={profile.loggedIn} />
         </CardTitle>
       </CardHeader>
       <CardContent className="flex min-w-0 flex-col gap-3">
