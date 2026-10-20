@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import type { DatabaseSync } from 'node:sqlite'
 import { openDb } from '@/lib/db'
 import { upsertVideos, listVideos, getVideo } from '@/lib/repo/videos'
-import { insertDraft, latestDraft } from '@/lib/repo/drafts'
+import { insertDraft, latestDraft, recentChannelDraftTexts } from '@/lib/repo/drafts'
 import { insertPost, successCountToday, hasSuccessForVideo, lastSuccessProfileId, listPosts, postedVideoIds } from '@/lib/repo/posts'
 import { createJob, updateJob, getJob, activeJob } from '@/lib/repo/jobs'
 
@@ -28,6 +28,17 @@ describe('drafts', () => {
     insertDraft(db, { video_id: 'a', concern: 'c2', evidence: 'e2', text: 't2', valid: true, violations: [], model: 'm' })
     const d = latestDraft(db, 'a')
     expect(d?.text).toBe('t2'); expect(d?.valid).toBe(true); expect(d?.violations).toEqual([])
+  })
+  it('recentChannelDraftTexts returns same-channel texts newest first, up to limit', () => {
+    const other = 'UC-ee_ziASM251TMXe3P3VZA'
+    upsertVideos(db, [video('a'), video('b'), { ...video('c'), channel_id: other }])
+    const add = (v: string, text: string) => insertDraft(db, { video_id: v, concern: 'c', evidence: 'e', text, valid: true, violations: [], model: 'm' })
+    add('a', 'a1'); add('c', 'c1'); add('b', 'b1'); add('a', 'a2')
+    expect(recentChannelDraftTexts(db, 'UCxlc0Ky0aWoD8uI09ad44Tg')).toEqual(['a2', 'b1', 'a1'])
+    expect(recentChannelDraftTexts(db, 'UCxlc0Ky0aWoD8uI09ad44Tg', 2)).toEqual(['a2', 'b1'])
+    expect(recentChannelDraftTexts(db, other)).toEqual(['c1'])
+    for (let i = 3; i <= 6; i++) add('b', 'b' + i)
+    expect(recentChannelDraftTexts(db, 'UCxlc0Ky0aWoD8uI09ad44Tg')).toEqual(['b6', 'b5', 'b4', 'b3', 'a2'])   // 기본 5개
   })
 })
 

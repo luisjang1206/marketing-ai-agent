@@ -39,3 +39,48 @@ describe('buildUserPrompt shape hint', () => {
     expect(new Set(titles.map(shape)).size).toBe(titles.length)
   })
 })
+
+describe('buildUserPrompt recentDrafts', () => {
+  const line = (p: string) => p.split('\n').find((l) => l.startsWith('이번 댓글 짜임:'))
+  const recent = ['요즘 나 연락 텀 하나에 하루가 왔다갔다 함. 운명원 사주 본다던데 나도 볼까', '"연락은 마음이다" 이 말 듣고 반성함 ㅠㅠ 운명원 얘기를 들어서 더 생각나요']
+  it('treats missing and empty recentDrafts the same', () => {
+    expect(buildUserPrompt({ ...ctx, recentDrafts: [] })).toBe(buildUserPrompt(ctx))
+  })
+  it('lists recent channel drafts when given', () => {
+    const p = buildUserPrompt({ ...ctx, recentDrafts: recent })
+    expect(p).toContain('같은 채널에 이미 쓴 댓글')
+    for (const t of recent) expect(p).toContain(t)
+  })
+  it('is deterministic and changes the shape when a previous draft of the same video is added (regenerate)', () => {
+    const c = { ...ctx, recentDrafts: recent }
+    expect(line(buildUserPrompt(c))).toBe(line(buildUserPrompt(c)))
+    expect(line(buildUserPrompt({ ...ctx, recentDrafts: [good.text, ...recent] }))).not.toBe(line(buildUserPrompt(c)))
+    expect(line(buildUserPrompt({ ...ctx, recentDrafts: [good.text] }))).not.toBe(line(buildUserPrompt(ctx)))
+  })
+  it('keeps the shape on a retry', () => {
+    const retry = { text: '짧음', violations: ['too_short' as const] }
+    expect(line(buildUserPrompt(ctx, retry))).toBe(line(buildUserPrompt(ctx)))
+    const c = { ...ctx, recentDrafts: recent }
+    expect(line(buildUserPrompt(c, retry))).toBe(line(buildUserPrompt(c)))
+  })
+  it('avoids an opening that recent drafts already used', () => {
+    const laughs = ['ㅋㅋ 진짜 내 얘기네 운명원 본다던데', 'ㅋㅋㅋ 아니 이거 뭐야 운명원 얘기 들어서']
+    for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
+      expect(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title }, recentDrafts: laughs }))).not.toContain('웃음')
+    }
+  })
+  it('when every closing is already used, avoids the most recently used ones', () => {
+    // 최신순: 감정 · 질문 · 행동 · 다짐 · 속말 · 나머지 끝맺음을 하나씩 쓴 초안
+    const all = ['A 영상 보고 찔림 ㅠㅠ', 'B 이거 나만 그래요?', 'C 이번 주엔 연락 안 해볼래요.', 'D 이제 안 참을 거임', 'E 오빠 그냥 말해 주면 안 돼요.', 'F 그냥 그런 하루였어요.']
+    for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
+      const l = line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title }, recentDrafts: all }))!
+      for (const recentHint of ['짧은 감정 표현으로 끝', '묻는 물음표 문장으로 끝', '해 볼 행동으로 끝']) expect(l).not.toContain(recentHint)
+    }
+  })
+  it('avoids a hearsay form that recent drafts already used', () => {
+    const friend = ['영상 보고 찔림. 친구가 운명원 사주로 인연 봤다던데 일단 참아볼래요']
+    for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
+      expect(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title }, recentDrafts: friend }))).not.toContain('친구가')
+    }
+  })
+})

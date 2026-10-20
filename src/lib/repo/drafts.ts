@@ -12,3 +12,9 @@ export function latestDraft(db: DatabaseSync, videoId: string): DraftRow | undef
   if (!row) return undefined
   return { ...row, valid: !!row.valid, violations: JSON.parse(row.violations) as string[] }
 }
+// 같은 채널 최근 초안 text (최신순). 초안 프롬프트가 겹치지 않게 참고한다(이슈 13).
+export function recentChannelDraftTexts(db: DatabaseSync, channelId: string, limit = 5): string[] {
+  const rows = db.prepare(`SELECT d.text FROM drafts d JOIN videos v ON v.id = d.video_id WHERE v.channel_id=? ORDER BY d.id DESC LIMIT ?`)
+    .all(channelId, limit) as { text: string }[]
+  return rows.map((r) => r.text)
+}
