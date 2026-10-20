@@ -41,7 +41,7 @@ if (mode === 'login') await openForLogin(profileDir(n))
 else console.log(await checkLogin(profileDir(n)))
 ```
 `package.json`: `"try:login": "tsx scripts/try-login.ts"` (`pnpm add -D tsx`).
-- [ ] 3. 수동 검증: `pnpm try:login 1 login` → Chrome 창 → 유튜브1 계정 로그인 → 창 닫기. `pnpm try:login 1 check` → `{ loggedIn: true, channelName: '...' }`. 셀렉터가 안 맞으면 `PROFILE_SELECTORS`만 고친다.
+- [x] 3. 수동 검증: `pnpm try:login 1 login` → Chrome 창 → 유튜브1 계정 로그인 → 창 닫기. `pnpm try:login 1 check` → `{ loggedIn: true, channelName: '...' }`. 셀렉터가 안 맞으면 `PROFILE_SELECTORS`만 고친다.
 - [ ] 4. 프로필 2, 3도 같은 절차. 구글이 "안전하지 않은 브라우저" 경고를 내면 `ignoreDefaultArgs`/`args` 조합을 조정하고 결과를 ADR-0002 Consequences에 한 줄 추가.
 - [x] 5. 커밋 `feat: add Chrome profile launcher with login check`
 
@@ -57,3 +57,7 @@ else console.log(await checkLogin(profileDir(n)))
 검증: `pnpm try:login 1 check`(빈 프로필) → `{ loggedIn: false, channelName: null }`, exit 0, 약 8.6초(아바타 5초 대기 포함), 끝난 뒤 프로필 1 Chrome 프로세스 없음. 임시 프로필 탐침에서 로그아웃 화면의 `PROFILE_SELECTORS.signIn` 1개 매치·표시, `avatar` 0개, `navigator.language` `ko-KR`, `navigator.webdriver` `false`. `git check-ignore -v data/profiles/1` → `.gitignore:28:data/`. `pnpm test` 94 passed / 1 skipped, `tsc --noEmit`·`pnpm lint` 클린. Playwright는 `pnpm test`에서 실행되지 않는다. 테스트는 추가하지 않았다: 순수 로직이 `name?.trim() || null` 한 줄뿐이라 테스트용 경계를 따로 만들 가치가 없고, 실제 경로는 `try:login`으로 수동 검증한다.
 
 남은 일 (Status는 claimed 유지): 3·4단계. 사용자가 `pnpm try:login 1 login`·`2 login`·`3 login`으로 연 Chrome 창에서 유튜브1·2·3 계정에 직접 로그인하고 창을 닫은 뒤, `pnpm try:login N check`가 `loggedIn: true` + 채널명을 돌려주는지 확인해야 한다. 이때 `PROFILE_SELECTORS.accountName`(로그인 상태에서만 검증 가능)이 안 맞으면 그 값만 고친다.
+
+리뷰 후속 수정 (2026-10-20): `checkLogin`의 아바타 대기는 `page.locator(avatar).first()`로 strict mode 위반을 피하고, `errors.TimeoutError`만 `loggedIn:false`로 본다. 페이지가 닫히거나 죽는 등 다른 오류는 그대로 던진다(전에는 모든 오류가 `loggedIn:false`로 묻혔다). 셀렉터 값은 바뀌지 않았다. 리뷰 제안에 따라 이슈 09 Comments에 로그인 라우트의 `.catch` 메모를 남겼다.
+
+3단계 완료 (2026-10-20): 사용자가 `pnpm try:login 1 login`으로 연 창에서 직접 로그인하고 창을 닫자 명령이 정상 종료됐다(macOS의 "남은 페이지 0개 = 닫힘" 처리가 실제로 동작함). 이어서 수정된 코드로 `pnpm try:login 1 check` → `loggedIn: true`, `channelName`은 채널명 문자열(null 아님, 공개 저장소라 값은 적지 않음), exit 0, 끝난 뒤 Chrome 프로세스 없음. `PROFILE_SELECTORS.accountName`이 로그인 상태에서 처음 확인됐고 셀렉터 변경은 없다. 남은 일: 4단계(프로필 2·3 로그인과 check).

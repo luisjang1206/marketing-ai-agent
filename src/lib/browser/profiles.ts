@@ -1,4 +1,4 @@
-import type { BrowserContext, Page } from 'playwright'
+import { errors, type BrowserContext, type Page } from 'playwright'
 import { launchProfile } from './launch'
 
 // All YouTube DOM selectors for Profile login checks live here. On breakage edit only this object
@@ -51,10 +51,15 @@ export async function checkLogin(userDataDir: string): Promise<LoginStatus> {
   try {
     const page = await firstPage(context)
     await page.goto(YOUTUBE_URL)
-    const avatar = page.locator(PROFILE_SELECTORS.avatar)
-    const loggedIn = await avatar
-      .waitFor({ state: 'visible', timeout: AVATAR_WAIT_MS })
-      .then(() => true, () => false)
+    const avatar = page.locator(PROFILE_SELECTORS.avatar).first()
+    // Only "no avatar within the wait" means logged out; a crashed or closed page must surface as an error.
+    const loggedIn = await avatar.waitFor({ state: 'visible', timeout: AVATAR_WAIT_MS }).then(
+      () => true,
+      (err: unknown) => {
+        if (err instanceof errors.TimeoutError) return false
+        throw err
+      },
+    )
     if (!loggedIn) return { loggedIn: false, channelName: null }
 
     await avatar.click()

@@ -80,3 +80,7 @@ curl -s localhost:3000/api/log
 
 ## 완료 기준
 위 curl 4개가 기대 JSON 반환. 허용 밖 채널 링크 POST → 409 + `/api/log`에 blocked 행.
+
+## Comments
+
+이슈 07 리뷰에서 넘어온 메모 (2026-10-20): `POST /api/profiles/[id]/login`은 `void openForLogin(...)` 대신 `openForLogin(...).catch((err) => console.error(...))`처럼 `.catch`를 붙인다. 프로필 디렉터리가 이미 열려 있거나(Chrome 단일 인스턴스 잠금) Chrome이 설치돼 있지 않으면 `launchProfile`이 거부(reject)되는데, `.catch`가 없으면 Next.js 프로세스에 unhandled rejection이 남는다.
