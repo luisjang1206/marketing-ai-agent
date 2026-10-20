@@ -19,6 +19,7 @@ Model: —
 
 ## 사람이 하는 일
 - [ ] 테스트 영상 유튜브1 채널에 "일부 공개"로 업로드, ID를 `config.yaml`에
+- [ ] 프로필 3(유튜브3)의 구글 계정으로 유튜브 채널 만들기 → `pnpm try:login 3 check`가 `@핸들`을 돌려주는지 확인. 지금은 채널이 없어 이 프로필로 게시하면 `element_not_found`로 실패한다(이슈 08 Comments). 프로필 1은 2026-10-20에 `@핸들` 확인됨.
 - [ ] `docs/demo.md` 순서대로 녹화(QuickTime 화면 기록, 마이크 켜고 제작 의도 한 줄 구두 설명)
 - [ ] 영상 2~3분 확인 → 구글 드라이브 전체 공개 또는 유튜브 링크 공유 → 로그아웃 창에서 재생 확인
 - [ ] 과제 제출 폼: Track 2, 시연 링크, Git 주소 `https://github.com/luisjang1206/marketing-ai-agent`

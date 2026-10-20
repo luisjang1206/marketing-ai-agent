@@ -22,11 +22,12 @@ function refuse(message: string): void {
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const verifyOnly = args.includes(VERIFY_FLAG)
-  // Any other option-like argument (`-v`, `--verify`, ...) is refused, so a typo can never end up posted as the comment text.
+  // Any other `--flag` is refused in every position, and the comment text may not start with `-` at all, so a flag typo
+  // (`--verify`, `-v`) can never end up posted as the comment text. Video IDs may legitimately start with `-`.
   const positional = args.filter((a) => a !== VERIFY_FLAG)
-  if (positional.some((a) => a.startsWith('-')) || positional.length !== 3) return refuse(USAGE)
+  if (positional.some((a) => a.startsWith('--')) || positional.length !== 3) return refuse(USAGE)
   const [n, videoId, text] = positional
-  if (!/^\d+$/.test(n) || !videoId || !text) return refuse(USAGE)
+  if (!/^\d+$/.test(n) || !videoId || !text || text.startsWith('-')) return refuse(USAGE)
   const cfg = loadConfig()
 
   // 테스트 채널 확인. 키나 영상 정보가 없으면 실행하지 않는다.
