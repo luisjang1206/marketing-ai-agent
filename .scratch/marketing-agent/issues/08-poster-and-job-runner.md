@@ -1,6 +1,6 @@
 # 08 댓글 게시 (Playwright) + 작업 러너
 
-Status: ready-for-agent
+Status: claimed
 Type: task
 Blocked by: 03, 06, 07
 Agent: browser-engineer
@@ -55,7 +55,7 @@ export function runPostJob(jobId: string, deps: RunnerDeps): Promise<void>
 `runPostJob`: 프로필 id `p2` → index 2 → `profileDir(2)`; `expectedAuthor = getProfile(db, id)?.channel_name ?? null`; `typingDelayMs = [cfg.typing.min_delay_ms, cfg.typing.max_delay_ms]`; `screenshotPath = path.join(screenshotDir(), jobId + '.png')`. `updateJob(state)`를 `onProgress`에 연결(메시지는 PDF 표현: 프로필 여는 중/입력 중/게시 완료/댓글 보기). 끝나면 `insertPost(success|failed)` + `updateJob({ state: 'verified'|'failed', message, screenshot_path, post_id })`. 예외는 삼키고 `failed/unknown`으로 기록(백그라운드라 throw 하면 유실).
 
 ## 단계
-- [ ] 1. `tests/runner.test.ts` — `post`를 가짜로 주입
+- [x] 1. `tests/runner.test.ts` — `post`를 가짜로 주입
 ```ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { openDb } from '@/lib/db'
@@ -129,10 +129,20 @@ describe('startPostJob', () => {
   })
 })
 ```
-- [ ] 2. FAIL 확인 → `poster.ts`, `runner.ts` 구현 → PASS
-- [ ] 3. `scripts/try-post.ts`: `pnpm try:post <profileIndex> <videoId> "<text>"` → `postComment` 직접 호출, 진행 상태 콘솔 출력, 캡처 `data/screenshots/try-<ts>.png`.
+- [x] 2. FAIL 확인 → `poster.ts`, `runner.ts` 구현 → PASS
+- [x] 3. `scripts/try-post.ts`: `pnpm try:post <profileIndex> <videoId> "<text>"` → `postComment` 직접 호출, 진행 상태 콘솔 출력, 캡처 `data/screenshots/try-<ts>.png`.
 - [ ] 4. 수동 검증(본인 테스트 영상): 유튜브2 프로필로 1회 실제 게시. 셀렉터 틀리면 `SELECTORS`만 수정. 유튜브 한국어 화면에서 "댓글 추가..." placeholder 확인.
 - [ ] 5. 커밋 `feat: post comments via Playwright with job tracking`
 
 ## 완료 기준
 테스트 녹색. 실제 테스트 영상에 댓글 1건 게시되고 캡처에 하이라이트된 내 댓글이 보인다.
+
+## Comments
+
+1~3단계 완료 (2026-10-20, browser-engineer). `poster.ts`·`runner.ts`의 이름·시그니처·`SELECTORS` 값은 이슈 그대로이고, 러너가 쓰는 저장소 함수(`activeJob`, `lastSuccessProfileId`, `hasSuccessForVideo`, `successCountToday`, `latestDraft`, `getProfile`)도 모두 이슈의 이름 그대로 있었다. `try:post`를 package.json에 추가했고, 이슈 07 메모대로 본문은 `main()`으로 감쌌다. `pnpm test` 105 passed / 1 skipped(`runner.test.ts` 11개, 아래 3문단의 수정 포함), `tsc --noEmit`·`pnpm lint` 클린. 실제 Chrome은 아직 열지 않았다(4단계에서 진행).
+
+이슈 코드와 다른 점. (1) 테스트: Vitest 5의 `vi.fn(impl)`은 대입 대상(`typeof postComment`)으로 타입을 추론하지 않는다. 그래서 `ok`가 `boolean`으로 넓어져 `tsc`가 실패했고, 세 곳을 `vi.fn<Post>(…)`로 바꿨다(`type Post = Parameters<typeof startPostJob>[1]['post']`, 타입만 바뀌고 동작은 같다). 이슈 테스트가 `runPostJob`을 import만 하고 쓰지 않아 lint 경고가 났으므로, `runPostJob` 테스트 2개를 덧붙였다. 하나는 `post`에 넘기는 인자(`profileDir(2)`, 채널명, 타이핑 지연, `<jobId>.png`)를, 다른 하나는 `post`가 throw해도 `failed/unknown`으로 기록되고 reject하지 않는지를 확인한다. 두 테스트 모두 뮤테이션으로 실패하는 것을 확인했다. (2) 3단계 댓글 영역: `ytd-comments#comments`는 지연 로딩 전에도 DOM에 있으므로, "보인다"를 렌더링 완료 신호로 쓸 수 없다. 대신 그 안의 `placeholder` 또는 `commentsOff`가 보일 때까지 휠을 굴린다(최대 10회). 끝까지 안 보이면 `element_not_found`. (3) `submit` 셀렉터는 래퍼와 안쪽 `button`에 모두 맞는다. 그래서 `.last()`(안쪽 button)를 눌러 `click()`의 활성화 대기가 실제 `disabled`를 보게 했다. (4) 실패 분류: `TimeoutError`가 셀렉터 대기에서도 나기 때문에, 요소 대기는 `need()`로 감싸 `element_not_found`로 바꾸고 로그인·댓글 비활성·확인 30초 초과는 내부 `PostFailure`로 던진다. 그 밖의 `TimeoutError`는 `timeout`, 나머지는 `unknown`. (5) 저장소에 id로 초안을 읽는 함수가 없어서, `runPostJob`은 `latestDraft(video)`를 쓰되 `draft.id === job.draft_id`를 확인한다. `startPostJob`이 `createJob`과 같은 틱에 호출하므로 항상 일치한다. (6) `try-post`는 Data API로 영상 채널을 확인해 `test: true` 채널이 아니면 Chrome을 열기 전에 거부한다(불변 제약 1을 코드로 강제). 또 러너와 같은 조건이 되도록 `checkLogin`의 채널명을 `expectedAuthor`로 넘긴다.
+
+3초 틈 수정 (2026-10-20, 메인 세션 지시). poster는 `onProgress('verified')` 뒤 3초 동안 창을 유지한다. 전에는 러너가 그 시점에 job만 `verified`로 바꾸고 성공 행은 `post()`가 끝난 뒤에 넣었다. 그래서 약 3초 동안 `activeJob`이 비고 `hasSuccessForVideo`가 false여서, 같은 영상의 두 번째 게시가 운영 규칙을 통과할 수 있었다(영상당 1개 위반). 이제 `runPostJob`은 `'verified'`를 받는 즉시 성공 행을 넣고(`screenshot_path`는 러너가 `post`에 넘긴 `<jobId>.png`), 같은 동기 구간에서 job을 `verified` + `post_id`로 갱신한다. 그 뒤 `post()`가 실패를 반환하거나 throw해도 행을 더 넣거나 job을 되돌리지 않는다. 그에 맞춰 poster의 3초 대기는 `.catch`로 감쌌다(대기 중 사용자가 창을 닫아도 확인된 게시가 실패로 바뀌지 않게). 테스트 3개를 추가했다: `verified` 후 `post`가 끝나지 않는 동안 성공 행이 있고 같은 영상 재요청이 `already_posted`로 차단되는지, `verified` 후 실패 반환·throw에도 job이 `verified`이고 행이 성공 1개뿐인지. 세 테스트 모두 수정 전 코드에서 실패하는 것을 먼저 확인했다. 이 때문에 이슈 테스트 1의 기대값 하나를 바꿨다. 가짜 `post`가 `'/s.png'`를 반환해도 성공 행은 `'verified'` 시점에 기록되므로, `screenshot_path` 기대값을 `path.join(screenshotDir(), jobId + '.png')`로 바꿨다. 실제 poster는 받은 경로에 캡처를 저장하고 그 경로를 그대로 반환하므로 둘은 같다.
+
+실제 게시 검증 보류 (2026-10-20, 사용자 결정). 4단계(실제 게시)는 이번에 하지 않았다. Chrome도 열지 않았고 `try:post`도 실행하지 않았다. 그래서 `SELECTORS`는 아직 실제 화면에서 확인되지 않았다. 남은 일: 4단계. 테스트 채널 영상에서 `pnpm try:post 2 <videoId> "<text>"`를 1회 실행하고(스크립트가 Data API로 테스트 채널인지 먼저 확인한다), 셀렉터가 틀리면 `SELECTORS`만 고친다. 4단계에서 꼭 확인할 위험 (A): `expectedAuthor`는 아바타 메뉴의 `#account-name`(표시 이름, 프로필의 `channel_name`)인데, 댓글 `#author-text`는 `@핸들`일 수 있다. 둘이 다르면 실제로는 게시됐는데 확인 단계가 `timeout` 실패로 기록되고, 실패는 영상당 1개에 세지 않으므로 재시도하면 중복 게시가 된다. `try-post`는 러너와 같은 조건이 되도록 `checkLogin`의 채널명을 `expectedAuthor`로 넘기므로, 4단계 결과로 바로 드러난다. 다르면 `checkLogin`이 핸들을 읽게 하거나 둘 중 하나와 맞으면 통과하게 고친다. Status는 4단계가 남아 있어 `claimed`로 둔다.
