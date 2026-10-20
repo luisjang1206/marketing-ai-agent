@@ -39,25 +39,28 @@ export function buildSystemPrompt(rules: DraftRules, brandPhrases: string[]): st
 // 최근 초안이 없으면 제목만으로 고른다(이슈 06). 있으면 최근 초안 text 가 실제로 쓴 꼴(test 로 판별)을 피하고,
 // 최근 초안 하나를 뺐을 때의 짜임과도 다르게 고른다. 꼴이 다 쓰였으면 가장 오래전에 쓴 꼴을 고른다.
 // 그래서 [다시 생성]이면 짜임이 바뀌고, 재시도(previous)는 그대로다.
-// 옵션은 판별 순서대로 둔다. test 가 없는 옵션은 나머지 전부를 받는다. Date·random 없음.
+// 옵션은 구체적인 것부터 판별 순서대로 둔다. test 가 없는 옵션은 나머지 전부를 받는다. Date·random 없음.
 type Option = { hint: string; test?: (t: string) => boolean }
 const firstSentence = (t: string) => /^[^.?!]*[.?!]?/.exec(t)![0]
-const lastSentence = (t: string) => t.split(/(?<=[.?!])\s+/).pop()!
+const sentences = (t: string) => t.split(/(?<=[.?!])\s+/)
+const lastSentence = (t: string) => sentences(t).pop()!
+// 브랜드 문장 = 전문 어미가 있는 마지막 문장(브랜드는 후반에 전문으로 나온다). buildUserPrompt 는 브랜드 이름을 모른다.
+const brandSentence = (t: string) => sentences(t).findLast((x) => /던데|길래|들어서|들었는데|들었거든|고들|봤대/.test(x)) ?? t
 const OPENINGS: Option[] = [
   { hint: '영상 속 말을 따옴표로 짧게 인용하며 시작', test: (t) => /^["'“‘]/.test(t) },
-  { hint: '웃음이나 감탄으로 시작', test: (t) => /^([ㅋㅎ]|아니|와|헐|아 )/.test(t) },
+  { hint: '웃음이나 감탄으로 시작', test: (t) => /^([ㅋㅎ]|아니[ ,]|와[ ,!~]|헐|아 )/.test(t) },
   { hint: '"처음엔"으로 시작해 반신반의하다가 설득된 얘기', test: (t) => /^처음/.test(t) },
   { hint: '물음표로 끝나는 질문 한 문장으로 시작', test: (t) => firstSentence(t).endsWith('?') },
   { hint: '"요즘"이나 "나/저"로 시작하는 내 상황 고백', test: (t) => /^(요즘|[나저내][ 도가는])/.test(t) },
   { hint: '영상 속 장면을 내 말로 짧게 다시 짚으며 시작' },
 ]
 const HEARSAY: Option[] = [
-  { hint: '"친구가 ~ 봤다고 하던데"', test: (t) => /친구가|봤다|봤대/.test(t) },
+  { hint: '"친구가 ~ 봤다고 하던데"', test: (t) => /친구가[^.?!]*(봤다|봤대)/.test(t) },
   { hint: '"요즘 ~ 많이들 본다던데"', test: (t) => /많이들|많이 본다/.test(t) },
   { hint: '"~라고들 하던데"', test: (t) => /[라다]고들/.test(t) },
-  { hint: '"~라는 얘기를 들어서"', test: (t) => /들어서|들었는데|들었거든/.test(t) },
-  { hint: '"~다길래"', test: (t) => /길래/.test(t) },
-  { hint: '"~다던데"', test: (t) => /던데/.test(t) },
+  { hint: '"~라는 얘기를 들어서"', test: (t) => /(얘기|소리|말)[을를]? ?들(어서|었는데|었거든)/.test(t) },
+  { hint: '"~다길래"', test: (t) => /[다대라]길래/.test(t) },
+  { hint: '"~다던데"', test: (t) => /[다대라]던데/.test(t) },
 ]
 // 방향만 준다. 낱말이 초안에 그대로 옮겨져도 서비스 메뉴처럼 읽히지 않게 "~에 대한 물음"으로만 쓴다.
 const ANGLES: Option[] = [
@@ -71,17 +74,23 @@ const CLOSINGS: Option[] = [
   { hint: '"ㅠㅠ"나 "ㅋㅋ" 같은 짧은 감정 표현으로 끝', test: (t) => /[ㅠㅜㅋㅎ]+$/.test(t) },
   { hint: '다른 시청자에게 묻는 물음표 문장으로 끝', test: (t) => /\?[!~.]*$/.test(t) },
   { hint: '이번 주에 해 볼 행동으로 끝', test: (t) => /이번 ?주|주말|오늘|내일|당분간/.test(lastSentence(t)) },
-  { hint: '반말 혼잣말 다짐으로 끝', test: (t) => /(야지|거임|거야|할래|겠다|자)[.!~]*$/.test(t) },
+  { hint: '반말 혼잣말 다짐으로 끝', test: (t) => /(야지|거임|거야|할래|겠다|하자|보자|말자)[.!~]*$/.test(t) },
   { hint: '그 사람에게 속으로 하는 말로 끝', test: (t) => /오빠|자기야|(^|\s)너[는가도]?\s/.test(lastSentence(t)) },
   { hint: '내 상황을 담담하게 정리하는 말로 끝' },
 ]
-const DIMS = [{ salt: '시작', opts: OPENINGS }, { salt: '전문', opts: HEARSAY }, { salt: '궁금증', opts: ANGLES }, { salt: '끝', opts: CLOSINGS }]
+// 시작·전문 꼴·끝은 자리가 하나라 처음 걸린 꼴 하나만 친다. 궁금증은 한 문장에 여러 방향이 섞일 수 있어 걸린 것 전부를 친다.
+const whole = (t: string) => t
+const DIMS = [
+  { salt: '시작', opts: OPENINGS, scope: whole, multi: false }, { salt: '전문', opts: HEARSAY, scope: brandSentence, multi: false },
+  { salt: '궁금증', opts: ANGLES, scope: brandSentence, multi: true }, { salt: '끝', opts: CLOSINGS, scope: whole, multi: false },
+]
 // FNV-1a. 차원마다 다른 salt 를 붙여 네 차원이 서로 따로 움직이게 한다(djb2 는 작은 모듈러에서 salt 가 무력해서 쓰지 않음).
 const seed = (s: string) => { let h = 0x811c9dc5; for (const c of s) h = Math.imul(h ^ c.codePointAt(0)!, 0x01000193) >>> 0; return h }
-// 한 초안이 여러 꼴에 걸리면 전부 쓴 것으로 친다. 아무 데도 안 걸리면 test 없는 옵션(나머지)을 쓴 것으로 친다.
-const classesOf = (opts: Option[], t: string) => {
-  const hit = opts.flatMap((o, i) => (o.test?.(t) ? [i] : []))
-  return hit.length ? hit : opts.flatMap((o, i) => (o.test ? [] : [i]))
+// 초안이 쓴 꼴. 아무 데도 안 걸리면 test 없는 옵션(나머지)을 쓴 것으로 친다.
+const classesOf = (d: (typeof DIMS)[number], text: string) => {
+  const t = d.scope(text)
+  const hit = d.opts.flatMap((o, i) => (o.test?.(t) ? [i] : []))
+  return hit.length ? (d.multi ? hit : hit.slice(0, 1)) : d.opts.flatMap((o, i) => (o.test ? [] : [i]))
 }
 
 function shapeOf(title: string, recent: string[]): number[] {
@@ -89,7 +98,7 @@ function shapeOf(title: string, recent: string[]): number[] {
   const prev = shapeOf(title, recent.slice(1))
   return DIMS.map((d, i) => {
     // 우선순위: 직전 짜임(prev)이 아님 > 최근 초안이 안 쓴 꼴 > 가장 오래전에 쓴 꼴 > seed 순서
-    const usedAt = (k: number) => { const j = recent.findIndex((t) => classesOf(d.opts, t).includes(k)); return j < 0 ? Infinity : j }
+    const usedAt = (k: number) => { const j = recent.findIndex((t) => classesOf(d, t).includes(k)); return j < 0 ? Infinity : j }
     const start = seed(d.salt + title + '\n' + recent.join('\n'))
     const order = d.opts.map((_, k) => (start + k) % d.opts.length)
     return [...order].sort((x, y) => Number(x === prev[i]) - Number(y === prev[i]) || usedAt(y) - usedAt(x))[0]
