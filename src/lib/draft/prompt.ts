@@ -42,25 +42,35 @@ export function buildSystemPrompt(rules: DraftRules, brandPhrases: string[]): st
 // 옵션은 구체적인 것부터 판별 순서대로 둔다. test 가 없는 옵션은 나머지 전부를 받는다. Date·random 없음.
 type Option = { hint: string; test?: (t: string) => boolean }
 const firstSentence = (t: string) => /^[^.?!]*[.?!]?/.exec(t)![0]
-const sentences = (t: string) => t.split(/(?<=[.?!])\s+/)
-const lastSentence = (t: string) => sentences(t).pop()!
-// 브랜드 문장 = 전문 어미가 있는 마지막 문장(브랜드는 후반에 전문으로 나온다). buildUserPrompt 는 브랜드 이름을 모른다.
-const brandSentence = (t: string) => sentences(t).findLast((x) => /던데|길래|들어서|들었는데|들었거든|고들|봤대/.test(x)) ?? t
+// 문장은 . ? ! … 뒤와 ㅠㅠ·ㅋㅋ 같은 두 글자 이상 감정 표현 뒤에서 나눈다.
+const sentences = (t: string) => t.split(/(?<=[.?!…]|[ㅠㅜㅋㅎ]{2})(?![.?!…ㅠㅜㅋㅎ])\s*/).filter((x) => x.trim())
+const lastSentence = (t: string) => sentences(t).pop() ?? t
+const tailless = (t: string) => t.replace(/[\s.!?~…ㅠㅜㅋㅎ]+$/, '')
+// 브랜드 문장 = 전문 어미가 있는 마지막 문장(브랜드는 후반에 전문으로 나온다). 브랜드 이름이 든 문장을 고르면 더 정확하지만
+// buildUserPrompt 는 브랜드 이름을 모르고 시그니처는 고정이라 위치로 고른다.
+const brandSentence = (t: string) =>
+  sentences(t).findLast((x) => /[다대라]던데|[다대라]길래|대서|고들|봤대|봤다|[다라]며|[다라]더라|들어서|들었/.test(x)) ?? t
+// "처음엔" 시작은 두 문장을 먹기 쉬워서 한 문장으로 쓰게 하고, 이때는 끝맺음 문장을 따로 붙이지 않는다(길이).
+const DOUBT = '"처음엔 ~했는데"로 반신반의하다 설득된 얘기를 한 문장에 담아 시작'
+const NO_CLOSING = '끝맺음 문장 없이 브랜드 문장으로 마무리'
 const OPENINGS: Option[] = [
   { hint: '영상 속 말을 따옴표로 짧게 인용하며 시작', test: (t) => /^["'“‘]/.test(t) },
   { hint: '웃음이나 감탄으로 시작', test: (t) => /^([ㅋㅎ]|아니[ ,]|와[ ,!~]|헐|아 )/.test(t) },
-  { hint: '"처음엔"으로 시작해 반신반의하다가 설득된 얘기', test: (t) => /^처음/.test(t) },
-  { hint: '물음표로 끝나는 질문 한 문장으로 시작', test: (t) => firstSentence(t).endsWith('?') },
+  { hint: DOUBT, test: (t) => /^처음/.test(t) },
   { hint: '"요즘"이나 "나/저"로 시작하는 내 상황 고백', test: (t) => /^(요즘|[나저내][ 도가는])/.test(t) },
+  { hint: '물음표로 끝나는 질문 한 문장으로 시작', test: (t) => firstSentence(t).endsWith('?') },
   { hint: '영상 속 장면을 내 말로 짧게 다시 짚으며 시작' },
 ]
+// 전문 꼴은 어미만 준다(띄어쓰기·~ 빼고 7자 이하). 꼴이 8개라 최근 초안 6개(목록 5 + 재생성)여도 빈 꼴이 남는다.
 const HEARSAY: Option[] = [
-  { hint: '"친구가 ~ 봤다고 하던데"', test: (t) => /친구가[^.?!]*(봤다|봤대)/.test(t) },
-  { hint: '"요즘 ~ 많이들 본다던데"', test: (t) => /많이들|많이 본다/.test(t) },
-  { hint: '"~라고들 하던데"', test: (t) => /[라다]고들/.test(t) },
-  { hint: '"~라는 얘기를 들어서"', test: (t) => /(얘기|얘길|소리|말)[을를]? ?들(어서|었는데|었거든)/.test(t) },
+  { hint: '"친구가 ~ 봤대"', test: (t) => /친구가[^.?!]*봤(대|다)/.test(t) },
+  { hint: '"~다고들 하던데"', test: (t) => /[라다]고들/.test(t) },
+  { hint: '"~대서"', test: (t) => /대서/.test(t) },
   { hint: '"~다길래"', test: (t) => /[다대라]길래/.test(t) },
-  { hint: '"~다던데"', test: (t) => /[다대라]던데/.test(t) },
+  { hint: '"~라던데"', test: (t) => /라던데/.test(t) },
+  { hint: '"~다던데"', test: (t) => /다던데/.test(t) },
+  { hint: '"~다며"', test: (t) => /[다라]며/.test(t) },
+  { hint: '"~다더라"', test: (t) => /[다라]더라/.test(t) },
 ]
 // 방향만 준다. 낱말이 초안에 그대로 옮겨져도 서비스 메뉴처럼 읽히지 않게 "~에 대한 물음"으로만 쓴다.
 const ANGLES: Option[] = [
@@ -70,12 +80,13 @@ const ANGLES: Option[] = [
   { hint: '나 자신에 대한 물음', test: (t) => /버릇|패턴|습관|성향|나는 왜|내가 왜/.test(t) },
   { hint: '앞으로에 대한 물음', test: (t) => /앞으로|연애운|올해|흐름/.test(t) },
 ]
+// 내용 꼴(행동·다짐·속말)을 먼저 보고, 꼬리에 붙는 물음표·감정 표현은 그다음에 본다.
 const CLOSINGS: Option[] = [
-  { hint: '"ㅠㅠ"나 "ㅋㅋ" 같은 짧은 감정 표현으로 끝', test: (t) => /[ㅠㅜㅋㅎ]+$/.test(t) },
-  { hint: '다른 시청자에게 묻는 물음표 문장으로 끝', test: (t) => /\?[!~.]*$/.test(t) },
   { hint: '이번 주에 해 볼 행동으로 끝', test: (t) => /이번 ?주|주말|오늘|내일|당분간/.test(lastSentence(t)) },
-  { hint: '반말 혼잣말 다짐으로 끝', test: (t) => /(야지|거임|거야|할래|겠다|하자|보자|말자)[.!~]*$/.test(t) },
+  { hint: '반말 혼잣말 다짐으로 끝', test: (t) => /(야지|거임|거야|할래|겠다|하자|보자|말자)$/.test(tailless(t)) },
   { hint: '그 사람에게 속으로 하는 말로 끝', test: (t) => /오빠|자기야|(^|\s)너[는가도]?\s/.test(lastSentence(t)) },
+  { hint: '다른 시청자에게 묻는 물음표 문장으로 끝', test: (t) => /\?[\s.!~ㅠㅜㅋㅎ]*$/.test(t) },
+  { hint: '"ㅠㅠ"나 "ㅋㅋ" 같은 짧은 감정 표현으로 끝', test: (t) => /[ㅠㅜㅋㅎ]+[\s.!~]*$/.test(t) },
   { hint: '내 상황을 담담하게 정리하는 말로 끝' },
 ]
 // 시작·전문 꼴·끝은 자리가 하나라 처음 걸린 꼴 하나만 친다. 궁금증은 한 문장에 여러 방향이 섞일 수 있어 걸린 것 전부를 친다.
@@ -84,8 +95,14 @@ const DIMS = [
   { salt: '시작', opts: OPENINGS, scope: whole, multi: false }, { salt: '전문', opts: HEARSAY, scope: brandSentence, multi: false },
   { salt: '궁금증', opts: ANGLES, scope: brandSentence, multi: true }, { salt: '끝', opts: CLOSINGS, scope: whole, multi: false },
 ]
-// FNV-1a. 차원마다 다른 salt 를 붙여 네 차원이 서로 따로 움직이게 한다(djb2 는 작은 모듈러에서 salt 가 무력해서 쓰지 않음).
-const seed = (s: string) => { let h = 0x811c9dc5; for (const c of s) h = Math.imul(h ^ c.codePointAt(0)!, 0x01000193) >>> 0; return h }
+// FNV-1a + murmur3 마무리 섞기. 차원마다 다른 salt 를 붙여 네 차원이 서로 따로 움직이게 한다.
+// 마무리 섞기가 없으면 꼴 개수가 2의 거듭제곱(전문 8개)일 때 하위 비트만 남아 어떤 꼴은 아예 안 뽑힌다(djb2 도 같은 이유로 안 씀).
+const seed = (s: string) => {
+  let h = 0x811c9dc5
+  for (const c of s) h = Math.imul(h ^ c.codePointAt(0)!, 0x01000193)
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35)
+  return (h ^ (h >>> 16)) >>> 0
+}
 // 초안이 쓴 꼴. 아무 데도 안 걸리면 test 없는 옵션(나머지)을 쓴 것으로 친다.
 const classesOf = (d: (typeof DIMS)[number], text: string) => {
   const t = d.scope(text)
@@ -125,7 +142,8 @@ export function buildUserPrompt(ctx: DraftContext, previous?: { text: string; vi
     parts.push('', `같은 채널에 이미 쓴 댓글 (최신순):\n${recent.map((t) => `- ${t}`).join('\n')}`,
       '위 댓글들과 시작·끝맺음·브랜드 문장의 꼴과 눈에 띄는 표현이 겹치지 않게 씁니다. 띄어쓰기를 빼고 문장부호까지 쳐서 여덟 글자 이상 똑같이 이어지는 말이 없어야 합니다. 특히 브랜드 문장은 브랜드 이름 바로 앞뒤 낱말까지 겹치기 쉬우니, 위 댓글들의 브랜드 문장을 보고 앞뒤 낱말을 다르게 고릅니다. 이 영상의 장면을 이미 짚은 댓글이 있으면 다른 장면을 고릅니다. 다 쓴 뒤 위 댓글 하나하나와 견줘 보고, 여덟 글자 넘게 같은 부분이 있으면 고칩니다.')
   }
-  parts.push('', `이번 댓글 짜임: ${OPENINGS[o].hint}. 브랜드 문장은 후반에 ${HEARSAY[h].hint} 꼴로 씁니다. 궁금증의 방향: ${ANGLES[a].hint}. ${CLOSINGS[c].hint}.`)
+  const closing = OPENINGS[o].hint === DOUBT ? NO_CLOSING : CLOSINGS[c].hint
+  parts.push('', `이번 댓글 짜임: ${OPENINGS[o].hint}. 브랜드 문장은 후반에 ${HEARSAY[h].hint} 꼴로 씁니다. 궁금증의 방향: ${ANGLES[a].hint}. ${closing}.`)
   if (previous) {
     parts.push('', `이전 초안(${len(previous.text.trim())}자): ${previous.text}`,
       `위반: ${previous.violations.map((v) => `${v}(${VIOLATION_LABELS[v]})`).join(', ')}`,

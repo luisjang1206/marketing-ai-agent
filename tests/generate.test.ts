@@ -82,7 +82,7 @@ describe('buildUserPrompt recentDrafts', () => {
   const assigned = (recentDrafts: string[], part: 0 | 1 | 3) => new Set(Array.from({ length: 40 }, (_, i) =>
     SHAPE.exec(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 't' + i }, recentDrafts }))!)![part + 1]))
   it('counts only the most specific hearsay form a draft used', () => {
-    const s = assigned(['영상 보고 찔림. 친구가 운명원 사주 봤다고 하던데 나도 궁금해요'], 1)
+    const s = every(1, ['영상 보고 찔림. 친구가 운명원 사주 봤다고 하던데 나도 궁금해요'])
     expect(s.has('"친구가 ~ 봤대"')).toBe(false)
     expect(s.has('"~다던데"')).toBe(true)
     expect(s.size).toBe(every(1).size - 1)
