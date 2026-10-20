@@ -136,6 +136,14 @@ describe('buildUserPrompt recentDrafts', () => {
     expect(every(3, recentOne).has('내 상황을 담담하게 정리하는 말로 끝')).toBe(false)
     expect(every(0).has('영상 속 장면을 내 말로 짧게 다시 짚으며 시작')).toBe(true)   // 최근 초안이 없으면 이슈 06 그대로
   })
+  it('prefers an unused form over avoiding prev, so a free opening is never skipped', () => {
+    // 따옴표 · 웃음 · 처음엔 · 고백 시작을 이미 썼다. 판별 가능한 빈 시작은 질문 하나뿐이다.
+    const used4 = ['"연락은 마음이다" 이 말에 멈칫했어요. 운명원 잘 본다던데 궁금해요', 'ㅋㅋ 이거 완전 내 얘기네. 운명원 본대서 나도 볼까',
+      '처음엔 뻔한 얘기인 줄 알았는데 설득됐어요. 친구가 운명원 봤대', '요즘 나 연락 텀 하나에 하루가 왔다갔다 함. 운명원 많이들 본다길래 궁금']
+    const openings = new Set(Array.from({ length: 400 }, (_, i) =>
+      SHAPE.exec(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 'p' + i }, recentDrafts: used4 }))!)![1]))
+    expect([...openings]).toEqual(['물음표로 끝나는 질문 한 문장으로 시작'])
+  })
   it('splits sentences at ㅠㅠ and … so the hearsay form is read from the brand sentence only', () => {
     expect(every(1, ['친구가 한 말이 생각났음ㅠㅠ 운명원 다들 봤대']).has('"친구가 ~ 봤대"')).toBe(true)
     expect(every(1, ['어제 친구가 봤다는 영상… 운명원 잘 본다길래 나도']).has('"친구가 ~ 봤대"')).toBe(true)
