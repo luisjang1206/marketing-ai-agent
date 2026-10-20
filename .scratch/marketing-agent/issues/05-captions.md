@@ -1,6 +1,6 @@
 # 05 자막 수집 (yt-dlp) + VTT 파서
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 02
 Agent: issue-implementer
@@ -23,7 +23,7 @@ export async function fetchCaptions(videoId: string, opts: { outDir: string; max
 yt-dlp 호출: `yt-dlp --skip-download --write-sub --write-auto-sub --sub-lang ko --sub-format vtt --no-warnings -o "<outDir>/%(id)s" https://www.youtube.com/watch?v=<id>` → 성공 시 `<outDir>/<id>.ko.vtt`. 이미 파일이 있으면 호출 생략(캐시).
 
 ## 단계
-- [ ] 1. `tests/captions.test.ts`
+- [x] 1. `tests/captions.test.ts`
 ```ts
 import { describe, it, expect } from 'vitest'
 import { mkdtempSync, writeFileSync } from 'node:fs'
@@ -74,8 +74,8 @@ describe('fetchCaptions', () => {
   })
 })
 ```
-- [ ] 2. FAIL 확인
-- [ ] 3. 구현
+- [x] 2. FAIL 확인
+- [x] 3. 구현
 ```ts
 import { execFile } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -110,8 +110,12 @@ export async function fetchCaptions(videoId: string, { outDir, maxChars = 6000, 
   return text ? { text: [...text].slice(0, maxChars).join(''), source: 'subtitle' } : { text: '', source: 'none' }
 }
 ```
-- [ ] 4. PASS → 커밋 `feat: fetch Korean captions via yt-dlp with VTT parser`
-- [ ] 5. 실환경: `brew install yt-dlp` 후 `youtu.be/akn-AvCeHBI`로 1회 실행해 파일명 규칙(`<id>.ko.vtt`) 확인. 다르면 `file` 경로 수정하고 README 설치 안내에 반영.
+- [x] 4. PASS → 커밋 `feat: fetch Korean captions via yt-dlp with VTT parser`
+- [x] 5. (실환경 확인 2026-10-20 완료, 파일명 `<id>.ko.vtt` 일치 — Comments 참조) 실환경: `brew install yt-dlp` 후 `youtu.be/akn-AvCeHBI`로 1회 실행해 파일명 규칙(`<id>.ko.vtt`) 확인. 다르면 `file` 경로 수정하고 README 설치 안내에 반영.
 
 ## 완료 기준
 테스트 녹색. yt-dlp 없이도 `source:'none'`으로 돌아온다.
+
+## Comments
+
+TDD 순서대로 진행: `tests/captions.test.ts`를 먼저 쓰고 모듈이 없어 실패하는 것을 확인한 뒤 구현했고, 전체 `pnpm test` 42개 통과(captions 5개 포함), `tsc --noEmit`과 `pnpm lint` 클린. 인터페이스(이름·시그니처·경로)는 이슈와 동일하다. 이슈와 다른 점은 하나뿐 — 이슈 코드가 쓰는 `CaptionResult`와 `ExecFn` 타입 선언이 스케치에 빠져 있어, 인터페이스 절의 정의 그대로 `captions.ts` 상단에 `export type`으로 선언했다(런타임 동일). 실환경 확인 (2026-10-20, 커밋 안 한 일회용 스크립트, 출력 폴더는 임시 디렉터리): `brew install yt-dlp`(2026.08.19) 후 `akn-AvCeHBI`로 `fetchCaptions`를 1회 호출해 5.4초 만에 `<outDir>/akn-AvCeHBI.ko.vtt` 한 개가 생성됐고 파일명 규칙이 이슈와 일치해서 `file` 경로 수정은 필요 없었다. 결과는 `source:'subtitle'`, 원본 VTT 약 247KB를 `parseVtt`로 풀면 14,278자(타임스탬프·인라인 태그 잔여물 없음, 롤링 자막의 연속 중복 줄도 제거됨)이고 기본 `maxChars` 6,000에 맞춰 잘렸다. 두 번째 호출은 캐시로 yt-dlp를 건너뛰었다(2ms). 열린 질문: ADR-0003이 요구하는 yt-dlp 설치 안내(`brew install yt-dlp`)가 들어갈 README는 아직 제목 한 줄뿐이라 이번 이슈에서는 README를 건드리지 않았다(파일명이 달랐을 때만 반영하라는 단계 5 조건에 해당하지 않음) — README 작성 이슈에서 설치 절에 넣어야 한다.
