@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 02
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 직접 입력 링크에서 영상 ID를 뽑고, Data API v3로 허용 채널 최신 영상·단일 영상·인기 댓글을 가져온다. `fetch`를 주입받아 테스트한다.

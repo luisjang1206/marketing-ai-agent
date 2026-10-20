@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 02
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 spec §9 `checkPostAllowed`와 §10 `pickProfile`. I/O 없음. 클라이언트에서도 import 가능해야 한다(버튼 사전 비활성용).

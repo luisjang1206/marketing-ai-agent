@@ -3,6 +3,8 @@
 Status: ready-for-human
 Type: task
 Blocked by: 11
+Agent: 사람
+Model: —
 
 ## 목표
 시연 영상 2~3분 녹화, 제출물 점검. 사람이 하는 일(녹화·업로드·제출 폼)과 에이전트가 하는 점검을 나눈다.

@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 04, 05, 06, 08
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 spec §4의 Route Handler 전부. 얇게: 입력 검증 → lib 호출 → JSON. 직접 입력 링크 검증 포함(가점).

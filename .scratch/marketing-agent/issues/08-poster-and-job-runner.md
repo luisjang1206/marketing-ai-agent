@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 03, 06, 07
+Agent: browser-engineer
+Model: opus
 
 ## 목표
 spec §8. 프로필을 열어 영상 댓글창에 한 글자씩 타이핑 → 게시 → 내 댓글 확인 → 캡처. 진행 상태를 `jobs`에, 결과를 `posts`에 기록. 실패 사유 분류.

@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 02
+Agent: prompt-tuner
+Model: opus
 
 ## 목표
 spec §7. 맥락(제목·설명·자막·인기 댓글)을 넣으면 `{concern, evidence, text}`가 나오고, `validateDraft`를 통과할 때까지 최대 2회 더 시도한다. LLM 호출은 어댑터로 주입.

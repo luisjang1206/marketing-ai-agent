@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 10
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 심사자가 저장소만 보고 설치·실행·설계 의도를 이해한다(제작 의도 5점 + 가점 어필).

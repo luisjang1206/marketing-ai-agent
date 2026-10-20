@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 01
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 `node:sqlite`로 `data/agent.db`를 열고 spec §6 테이블을 만든다. 리포지토리 함수는 전부 `db`를 첫 인자로 받아 `:memory:`로 테스트한다.

@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 09
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 spec §11. 처음 보는 사람이 설명 없이 ①→②→③을 쓸 수 있다. 프로필 선택(자동/수동), 차단 사전 비활성, 4단계 스테퍼, 캡처, 기록 표, 오늘 N/10.

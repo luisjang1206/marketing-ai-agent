@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 02
+Agent: browser-engineer
+Model: opus
 
 ## 목표
 spec §10. 프로필별 `data/profiles/<n>`을 실제 Chrome으로 열어 사람이 로그인하게 하고, 로그인 여부와 채널명을 읽어 `profiles` 테이블에 저장한다. (ADR-0002)

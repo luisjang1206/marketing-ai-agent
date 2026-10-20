@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: 02
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 yt-dlp로 한국어 자막(수동 또는 자동)을 받아 평문으로 만든다. yt-dlp가 없거나 자막이 없으면 `source:'none'`으로 조용히 폴백한다.

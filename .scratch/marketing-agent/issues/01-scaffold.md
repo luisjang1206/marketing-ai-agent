@@ -3,6 +3,8 @@
 Status: ready-for-agent
 Type: task
 Blocked by: —
+Agent: issue-implementer
+Model: sonnet
 
 ## 목표
 Next.js(App Router, TS, Tailwind, shadcn/ui) + vitest + 의존성 설치. `config.yaml`을 zod로 읽는 `loadConfig()`가 테스트와 함께 동작한다. `pnpm dev`가 뜬다.
