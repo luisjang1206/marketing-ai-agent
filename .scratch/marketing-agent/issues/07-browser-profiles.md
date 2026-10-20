@@ -63,3 +63,5 @@ else console.log(await checkLogin(profileDir(n)))
 3단계 완료 (2026-10-20): 사용자가 `pnpm try:login 1 login`으로 연 창에서 직접 로그인하고 창을 닫자 명령이 정상 종료됐다(macOS의 "남은 페이지 0개 = 닫힘" 처리가 실제로 동작함). 이어서 수정된 코드로 `pnpm try:login 1 check` → `loggedIn: true`, `channelName`은 채널명 문자열(null 아님, 공개 저장소라 값은 적지 않음), exit 0, 끝난 뒤 Chrome 프로세스 없음. `PROFILE_SELECTORS.accountName`이 로그인 상태에서 처음 확인됐고 셀렉터 변경은 없다. 남은 일: 4단계(프로필 2·3 로그인과 check).
 
 4단계 완료, 이슈 종료 (2026-10-20): 사용자가 `pnpm try:login 2 login`과 `pnpm try:login 3 login`으로 연 창에서 직접 로그인했다. 프로필 2는 첫 실행에서 로그인됐고, 사용자가 확인차 한 번 더 열었다. 이후 메인 세션이 실행한 `pnpm try:login 2 check`와 `pnpm try:login 3 check`가 모두 `loggedIn: true`와 null이 아닌 채널명을 돌려줬다. 공개 저장소라 실제 채널명은 적지 않는다. 세 프로필의 채널명은 서로 다르다(구글 계정이 다름). 구글의 "안전하지 않은 브라우저" 경고는 나오지 않아 런치 옵션은 그대로 두었고, ADR-0002에도 덧붙일 내용이 없다. 완료 기준 충족: 3개 프로필 모두 `checkLogin`이 `loggedIn: true`와 채널명을 반환했고, `data/profiles/`는 `.gitignore:28:data/`에 걸려 추적되지 않는다.
+
+이슈 08에서 변경 (2026-10-20): `PROFILE_SELECTORS.accountHandle`(`ytd-active-account-header-renderer #channel-handle`)을 추가했다. `checkLogin`의 `channelName`은 이제 `@핸들`을 먼저 쓰고, 없으면 표시 이름을 쓴다. 댓글 작성자가 핸들로 표시되기 때문이며, 자세한 내용은 이슈 08 Comments에 있다.

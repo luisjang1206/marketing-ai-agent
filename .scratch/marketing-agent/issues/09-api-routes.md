@@ -84,3 +84,5 @@ curl -s localhost:3000/api/log
 ## Comments
 
 이슈 07 리뷰에서 넘어온 메모 (2026-10-20): `POST /api/profiles/[id]/login`은 `void openForLogin(...)` 대신 `openForLogin(...).catch((err) => console.error(...))`처럼 `.catch`를 붙인다. 프로필 디렉터리가 이미 열려 있거나(Chrome 단일 인스턴스 잠금) Chrome이 설치돼 있지 않으면 `launchProfile`이 거부(reject)되는데, `.catch`가 없으면 Next.js 프로세스에 unhandled rejection이 남는다.
+
+참고 (이슈 08, 2026-10-20): `checkLogin().channelName`은 이제 `@핸들`이다(없으면 표시 이름). 이 값을 `upsertProfile`의 `channel_name`으로 그대로 저장하면, 러너가 이를 `expectedAuthor`로 써서 내 댓글인지 확인한다.

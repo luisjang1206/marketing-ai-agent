@@ -6,6 +6,7 @@ import { launchProfile } from './launch'
 export const PROFILE_SELECTORS = {
   avatar: 'button#avatar-btn',
   accountName: 'ytd-active-account-header-renderer #account-name',
+  accountHandle: 'ytd-active-account-header-renderer #channel-handle',
   signIn: 'a[aria-label*="로그인"], ytd-button-renderer#sign-in-button',
 }
 
@@ -63,12 +64,12 @@ export async function checkLogin(userDataDir: string): Promise<LoginStatus> {
     if (!loggedIn) return { loggedIn: false, channelName: null }
 
     await avatar.click()
-    const name = await page
-      .locator(PROFILE_SELECTORS.accountName)
-      .first()
-      .innerText({ timeout: AVATAR_WAIT_MS })
-      .catch(() => null)
-    return { loggedIn: true, channelName: name?.trim() || null }
+    const read = (selector: string) =>
+      page.locator(selector).first().innerText({ timeout: AVATAR_WAIT_MS }).then((t) => t.trim() || null, () => null)
+    // Comments show their author as the @handle (not the display name), and the poster matches on channelName,
+    // so prefer the handle; the display name is only a fallback.
+    const channelName = (await read(PROFILE_SELECTORS.accountHandle)) ?? (await read(PROFILE_SELECTORS.accountName))
+    return { loggedIn: true, channelName }
   } finally {
     await context.close()
   }
