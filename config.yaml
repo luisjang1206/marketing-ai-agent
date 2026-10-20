@@ -5,7 +5,7 @@ channels:                                 # 불러오기 · 게시 허용 범위
   - UC09L3JxGVcn7SKLa-pjTEmw   # 러브커넥트 유지연
   - UCVdtDW-HF4KluixGaBAcI4w   # 연애데이터 노노
   - UCkGl2jieOVhGiHPdXF77Yyw   # 심리조각
-  - { id: UC_REPLACE_WITH_TEST_CHANNEL, test: true }   # 본인 테스트 채널
+  - { id: UCY2MS2oUHbOsBLpvYqdFiDg, test: true }   # 본인 테스트 채널
 comment:
   min_chars: 40
   max_chars: 120

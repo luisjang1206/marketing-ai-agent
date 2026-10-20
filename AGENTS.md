@@ -51,7 +51,7 @@ data/                       runtime only, gitignored: agent.db, screenshots/, ca
 - macOS with Google Chrome installed; posting opens visible Chrome windows.
 - Node >= 25 for `node:sqlite` (ADR-0004). TODO: no `.nvmrc` or `engines` field pins this yet.
 - `yt-dlp` optional. Without it, Drafts fall back to title, description, and top comments.
-- TODO: `config.yaml` still holds the placeholder `UC_REPLACE_WITH_TEST_CHANNEL`, which fails `loadConfig()` channel-ID validation. Replace it with the real Test Channel ID before running the app.
+- `config.yaml` holds the owner's real Test Channel ID. Anyone else posting replaces it with their own channel ID; a malformed ID fails `loadConfig()` channel-ID validation.
 
 ## Operational Commands
 
@@ -62,6 +62,7 @@ pnpm install
 pnpm dev                  # http://localhost:3000; also re-adds the nextjs-agent-rules block above
 pnpm build                # production build + typecheck
 pnpm start                # serve the production build
+pnpm reset:data           # before demo recording, dev server off; keeps data/profiles (Google logins)
 ```
 
 ### Quality and Testing
@@ -85,7 +86,8 @@ pnpm try:post <profileIndex> <videoId> "<text>"   # Test Channel videos only
 ### Pre-Submission Secret Scan
 
 ```bash
-git log -p | grep -i api_key
+git log -p --all | grep -iE 'sk-ant-|AIza[0-9A-Za-z_-]{30,}'   # only hits should be this regex quoted in docs/issues
+git ls-files | grep -i env                                    # only .env.example
 ```
 
 ## Golden Rules

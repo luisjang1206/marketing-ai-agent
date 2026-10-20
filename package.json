@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "try:login": "tsx scripts/try-login.ts",
-    "try:post": "tsx scripts/try-post.ts"
+    "try:post": "tsx scripts/try-post.ts",
+    "reset:data": "rm -rf data/agent.db data/agent.db-wal data/agent.db-shm data/screenshots data/captions"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

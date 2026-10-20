@@ -15,6 +15,7 @@ pnpm exec tsc --noEmit            # typecheck only
 pnpm test                         # vitest run, tests/**/*.test.ts
 pnpm test tests/rules.test.ts     # single file
 pnpm test:watch
+pnpm reset:data                   # before demo recording, dev server off; keeps data/profiles (Google logins)
 # scripts added by issues 07-08; Test Channel videos only
 pnpm try:login <n> login|check
 pnpm try:post <profileIndex> <videoId> "<text>"
