@@ -95,6 +95,9 @@ describe('buildUserPrompt recentDrafts', () => {
     // "와닿았어요"는 감탄 시작이 아니다
     expect(assigned(['와닿았어요 이 말. 운명원 잘 본다던데 궁금해요'], 0).has('웃음이나 감탄으로 시작')).toBe(true)
   })
+  it('recognises the contracted "얘길 들었는데" as the 들어서 hearsay form', () => {
+    expect(assigned(['영상 보고 찔림. 운명원에서 내 패턴도 본다는 얘길 들었는데 궁금해요'], 1).has('"~라는 얘기를 들어서"')).toBe(false)
+  })
   it('avoids a hearsay form that recent drafts already used', () => {
     const friend = ['영상 보고 찔림. 친구가 운명원 사주로 인연 봤다던데 일단 참아볼래요']
     for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
