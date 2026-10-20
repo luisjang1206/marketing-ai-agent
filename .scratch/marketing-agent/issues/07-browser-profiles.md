@@ -1,6 +1,6 @@
 # 07 크롬 프로필 (로그인 창 · 상태 확인)
 
-Status: claimed
+Status: resolved
 Type: task
 Blocked by: 02
 Agent: browser-engineer
@@ -42,7 +42,7 @@ else console.log(await checkLogin(profileDir(n)))
 ```
 `package.json`: `"try:login": "tsx scripts/try-login.ts"` (`pnpm add -D tsx`).
 - [x] 3. 수동 검증: `pnpm try:login 1 login` → Chrome 창 → 유튜브1 계정 로그인 → 창 닫기. `pnpm try:login 1 check` → `{ loggedIn: true, channelName: '...' }`. 셀렉터가 안 맞으면 `PROFILE_SELECTORS`만 고친다.
-- [ ] 4. 프로필 2, 3도 같은 절차. 구글이 "안전하지 않은 브라우저" 경고를 내면 `ignoreDefaultArgs`/`args` 조합을 조정하고 결과를 ADR-0002 Consequences에 한 줄 추가.
+- [x] 4. 프로필 2, 3도 같은 절차. 구글이 "안전하지 않은 브라우저" 경고를 내면 `ignoreDefaultArgs`/`args` 조합을 조정하고 결과를 ADR-0002 Consequences에 한 줄 추가.
 - [x] 5. 커밋 `feat: add Chrome profile launcher with login check`
 
 ## 완료 기준
@@ -61,3 +61,5 @@ else console.log(await checkLogin(profileDir(n)))
 리뷰 후속 수정 (2026-10-20): `checkLogin`의 아바타 대기는 `page.locator(avatar).first()`로 strict mode 위반을 피하고, `errors.TimeoutError`만 `loggedIn:false`로 본다. 페이지가 닫히거나 죽는 등 다른 오류는 그대로 던진다(전에는 모든 오류가 `loggedIn:false`로 묻혔다). 셀렉터 값은 바뀌지 않았다. 리뷰 제안에 따라 이슈 09 Comments에 로그인 라우트의 `.catch` 메모를 남겼다.
 
 3단계 완료 (2026-10-20): 사용자가 `pnpm try:login 1 login`으로 연 창에서 직접 로그인하고 창을 닫자 명령이 정상 종료됐다(macOS의 "남은 페이지 0개 = 닫힘" 처리가 실제로 동작함). 이어서 수정된 코드로 `pnpm try:login 1 check` → `loggedIn: true`, `channelName`은 채널명 문자열(null 아님, 공개 저장소라 값은 적지 않음), exit 0, 끝난 뒤 Chrome 프로세스 없음. `PROFILE_SELECTORS.accountName`이 로그인 상태에서 처음 확인됐고 셀렉터 변경은 없다. 남은 일: 4단계(프로필 2·3 로그인과 check).
+
+4단계 완료, 이슈 종료 (2026-10-20): 사용자가 `pnpm try:login 2 login`과 `pnpm try:login 3 login`으로 연 창에서 직접 로그인했다. 프로필 2는 두 번째 실행에서 로그인이 유지됐다. 이후 메인 세션이 실행한 `pnpm try:login 2 check`와 `pnpm try:login 3 check`가 모두 `loggedIn: true`와 null이 아닌 채널명을 돌려줬다. 공개 저장소라 실제 채널명은 적지 않는다. 세 프로필의 채널명은 서로 다르다(구글 계정이 다름). 구글의 "안전하지 않은 브라우저" 경고는 나오지 않아 런치 옵션은 그대로 두었고, ADR-0002에도 덧붙일 내용이 없다. 완료 기준 충족: 3개 프로필 모두 `checkLogin`이 `loggedIn: true`와 채널명을 반환했고, `data/profiles/`는 `.gitignore:28:data/`에 걸려 추적되지 않는다.
