@@ -77,6 +77,24 @@ describe('buildUserPrompt recentDrafts', () => {
       for (const recentHint of ['짧은 감정 표현으로 끝', '묻는 물음표 문장으로 끝', '해 볼 행동으로 끝']) expect(l).not.toContain(recentHint)
     }
   })
+  // 제목 40개에 걸쳐 배정된 꼴의 집합. 최근 초안이 "쓴 것"으로 잡힌 꼴은 집합에서 빠진다.
+  const SHAPE = /^이번 댓글 짜임: (.+?)\. 브랜드 문장은 후반에 (.+?) 꼴로 씁니다\. 궁금증의 방향: (.+?)\. (.+)\.$/
+  const assigned = (recentDrafts: string[], part: 0 | 1 | 3) => new Set(Array.from({ length: 40 }, (_, i) =>
+    SHAPE.exec(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 't' + i }, recentDrafts }))!)![part + 1]))
+  it('counts only the most specific hearsay form a draft used', () => {
+    const s = assigned(['영상 보고 찔림. 친구가 운명원 사주 봤다고 하던데 나도 궁금해요'], 1)
+    expect(s.has('"친구가 ~ 봤다고 하던데"')).toBe(false)
+    expect(s.has('"~다던데"')).toBe(true)
+    expect(s.size).toBe(5)
+  })
+  it('does not mistake unrelated words for a used form', () => {
+    // "봤다가"·"친구가 한 말"은 친구 전문이 아니다
+    expect(assigned(['이 영상 봤다가 어제 친구가 한 말이 생각났음. 운명원 잘 본다던데 나도 궁금해요'], 1).has('"친구가 ~ 봤다고 하던데"')).toBe(true)
+    // "…남자"로 끝나는 건 반말 다짐이 아니다
+    expect(assigned(['영상 보고 생각해 보니 결국 문제는 그 남자'], 3).has('반말 혼잣말 다짐으로 끝')).toBe(true)
+    // "와닿았어요"는 감탄 시작이 아니다
+    expect(assigned(['와닿았어요 이 말. 운명원 잘 본다던데 궁금해요'], 0).has('웃음이나 감탄으로 시작')).toBe(true)
+  })
   it('avoids a hearsay form that recent drafts already used', () => {
     const friend = ['영상 보고 찔림. 친구가 운명원 사주로 인연 봤다던데 일단 참아볼래요']
     for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) {
