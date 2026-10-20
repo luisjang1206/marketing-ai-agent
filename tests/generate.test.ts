@@ -160,3 +160,57 @@ describe('buildUserPrompt recentDrafts', () => {
     }
   })
 })
+
+// 이슈 14 실키 R3-B · R4-B · R5-A 에서 실제로 나온 초안 text 를 그대로 다시 넣어 본다(API 호출 없음).
+// 녹화된 초안은 옛 짜임으로 쓰였으므로 "배정이 서로 다름"이 아니라 "앞 초안이 실제로 쓴 꼴을 배정하지 않음"을 본다.
+// 모델이 배정을 따르면 이것이 곧 배정이 서로 다름이 된다. LABELS 는 각 초안의 실제 시작 꼴(판별식 기준).
+describe('replay of recorded live drafts (issue 14)', () => {
+  const TITLES = ['남자는 ‘원래 그런 사람’이 아닙니다', '남자 때문에 힘들어하는 여자들 공통점', '썸붕난 이유, 살리는 법', '서운함 많은 여자들이 꼭 알아야 할 것', '남자에게 무시당하는 여자 특징']
+  const RUNS: Record<string, { chain: string[]; regen: string }> = {
+    'R3-B': { chain: [
+      '요즘 썸남 답장 늦으면 ISTP 연락 줄어드는 이유부터 검색했어요ㅠㅠ 나 왜 듣고 싶은 말만 골라 믿지? 운명원에서 그런 것도 나온다고들 하던데. 이번 주엔 검색 대신 연락 빈도를 메모해 볼래요.',
+      '크크크 하나 빠진 것도 잡아낸다는 말에서 혼자 웃다가 멈췄어요. 나 완전 그 사람 얘기네 싶어서. 운명원 쪽에서 둘 사이 흐름까지 짚어 준다길래, 우리가 진짜 맞는 사이인지도 나오나 싶네 ㅠㅠ',
+      '나 지금 공백인 거야, 그냥 참는 중인 거야? 충동만 참은 건 공백이고 알게 된 게 변화라는 말에서 멈칫했어요. 운명원에서 그 사람 속마음도 본다며, 걔는 나를 한 번이라도 떠올릴까. 나는 아직 변하는 중이야.',
+      '처음엔 서운한 게 내 잘못 아니잖아 싶었는데, 남자 점심 스토리에만 열받는 대목에서 설득됐어요ㅋㅋ 나잖아 이거. 친구가 운명원 사주 봤대, 이런 서운함은 언제쯤 덜해지는지 나오려나?',
+      'ㅋㅋㅋ 자막을 달아주는 꼴이라는 말에서 빵 터졌어요. 내가 딱 그 통역사였네. 운명원이 두 사람 사이 균형까지 짚는대서 우리는 누가 더 기우는 관계일지 궁금한데, 일단 이제 내 몫만 할 거야.'],
+      regen: '"운동을 또 미룹니다"에서 헉했어요. 나 지난주 내내 그랬거든ㅠㅠ 운명원 풀이로는 내가 왜 이렇게 매번 먼저 빠지는지 나온다던데, 나만 서두른 거였다면 미안해, 이제 내 운동하러 갈게.' },
+    'R4-B': { chain: [
+      '요즘 썸남 연락 줄 때마다 ISTP 글 뒤지며 안심했던 나ㅋㅋ "맞겠냐?"에서 찔렸어요. 운명원 보면 내 패턴도 나온다고들 하던데, 난 왜 듣고 싶은 말만 골랐을까요. 이번 주엔 검색 대신 직접 물어볼래요.',
+      'ㅋㅋㅋ 붙이던 게 오늘은 안 붙었다고 철렁하는 거 완전 내 얘기였어요 ㅠㅠ 이런 불안은 언제쯤 잠잠해지나 했는데, 운명원에서 보면 그 시기도 나온다길래 더 궁금해지네. 일단 오늘은 일주일 단위로 보기부터 해볼래.',
+      '충동만 참은 건 공백이고 뭘 잘못했는지 안 게 변화라는 말에 멈칫했어요. 난 그냥 2주째 버티기만 한 듯ㅋㅋ 운명원에서 다음 인연 흐름도 본대서 앞으로 어떨지 문득 궁금해짐. 지금은 한 문장 정리 연습 중이에요.',
+      '처음엔 서운한 게 내 탓이라니 억울했는데, 친구 카톡은 3시간 안 읽어도 넘기는 대목에서 설득됐어요. 우리 둘은 서로 뭘 사랑이라 느낄지, 운명원은 그런 것도 짚어 준다던데 싶네요.',
+      '나도 혹시 통역까지 해주는 쪽이었나? 남자가 말 안 해도 "원래 그런 사람이야" 하고 자막 달아주던 게 딱 나였네요ㅋㅋ 운명원에서는 이런 성향도 나온다던데, 나는 왜 늘 참는 쪽일까요, 다들 어때요?'],
+      regen: '예고편만 보고 끝났다는 말에 머릿속 본편 돌리던 내가 딱 보였는데, 나만 이러는 거예요? 친구가 운명원 보고 상대 속마음이 나왔대서 걔는 그날 진짜 어땠을지 자꾸 생각나요 ㅠㅠ' },
+    'R5-A': { chain: [
+      '요즘 썸남 답장 늦으면 ISTP 글부터 뒤졌어요ㅠㅠ 친구 게임엔 바로 접속한다는 대목에서 뜨끔. 운명원 사주엔 내 연애 습관도 나온다고들 하던데, 난 왜 이럴까? 이번 주는 검색 대신 내 마음부터 적어볼래요.',
+      '처음엔 사진 확대 비유가 좀 뻔하다 싶었는데 크크크 안 붙인 것까지 눈에 띈다는 말에 설득됐어요ㅋㅋ 나도 딱 그랬네. 운명원에서 둘 궁합 보면 이 사람이랑 나 어떤 사이인지 나온다길래 그게 궁금해지네요',
+      '충동만 참은 건 공백이고 뭘 잘못했는지 안 게 변화라는 말, 나는 아직 공백이려나? 운명원에서 다시 연락할 때가 언제인지도 본다대서 솔깃하네요. 너한테 갈 날 오면 그땐 급하지 않게 갈게.',
+      '"친구도 3시간 안 읽는데 왜 남자만 서운하냐"는 말에 할 말이 없었어요ㅋㅋ 내가 딱 그랬음. 운명원은 앞으로 올 인연 흐름도 짚어 준다던데, 나만 계속 이러면 어쩌죠?',
+      '요즘 내가 그 사람 말투까지 좋게 해석해 주고 있었네요ㅠㅠ 통역에 자막까지 달아 준다는 말에 뜨끔. 운명원에선 그 사람 속마음도 나온다며, 진짜 날 어떻게 생각하는지부터 알고 싶다. 이제 내 몫만 할 거야.'],
+      regen: 'ㅋㅋ 예고편만 보고 끝났다는 말에 무릎 쳤어요. 내가 본편을 혼자 찍고 있었네. 운명원 얘기 들으니 내 연애 패턴 같은 것도 나온다던데, 나는 왜 맨날 먼저 달려갈까ㅠㅠ' },
+  }
+  const SHAPE = /^이번 댓글 짜임: (.+?)\. 브랜드 문장은 후반에 (.+?) 꼴로 씁니다\. 궁금증의 방향: (.+?)\. (.+)\.$/
+  const shape = (title: string, recentDrafts: string[]) => SHAPE.exec(buildUserPrompt({ ...ctx, video: { ...ctx.video, title }, recentDrafts })
+    .split('\n').find((l) => l.startsWith('이번 댓글 짜임:'))!)!.slice(1)
+  const O = { conf: '"요즘"이나 "나/저"로 시작하는 내 상황 고백', quote: '영상 속 말을 따옴표로 짧게 인용하며 시작', laugh: '웃음이나 감탄으로 시작',
+    doubt: '"처음엔 ~했는데"로 반신반의하다 설득된 얘기를 한 문장에 담아 시작', q: '물음표로 끝나는 질문 한 문장으로 시작', scene: '영상 속 장면을 내 말로 짧게 다시 짚으며 시작' }
+  const PLAIN = '내 상황을 담담하게 정리하는 말로 끝', INNER = '그 사람에게 "너"라고 부르며 속으로 하는 말로 끝'
+  const LABELS: Record<string, string[]> = { 'R3-B': [O.conf, O.scene, O.conf, O.doubt, O.laugh], 'R4-B': [O.conf, O.laugh, O.scene, O.doubt, O.conf],
+    'R5-A': [O.conf, O.doubt, O.q, O.quote, O.conf] }
+  // 다시 생성한 영상(세 번째)의 원래 초안 X0 가 실제로 쓴 시작·끝
+  const X0: Record<string, [string, string]> = { 'R3-B': [O.conf, PLAIN], 'R4-B': [O.scene, PLAIN], 'R5-A': [O.q, INNER] }
+  const regenRecent = (chain: string[]) => [chain[2], ...[...chain].reverse().filter((t) => t !== chain[2])].slice(0, 5)   // 09 라우트 순서
+  for (const [name, { chain }] of Object.entries(RUNS)) {
+    it(`${name}: chained videos never get an opening an earlier draft already used`, () => {
+      chain.forEach((_, k) => expect(LABELS[name].slice(0, k)).not.toContain(shape(TITLES[k], chain.slice(0, k).reverse())[0]))
+    })
+    it(`${name}: the regenerate avoids the opening and closing its own previous draft used`, () => {
+      const r = shape(TITLES[2], regenRecent(chain))
+      expect(r[0]).not.toBe(X0[name][0]); expect(r[3]).not.toBe(X0[name][1])
+    })
+    it(`${name}: catch-all opening and closing are not handed out once the channel has drafts`, () => {
+      for (let k = 1; k < chain.length; k++) { const s = shape(TITLES[k], chain.slice(0, k).reverse()); expect(s[0]).not.toBe(O.scene); expect(s[3]).not.toBe(PLAIN) }
+      const r = shape(TITLES[2], regenRecent(chain)); expect(r[0]).not.toBe(O.scene); expect(r[3]).not.toBe(PLAIN)
+    })
+  }
+})
