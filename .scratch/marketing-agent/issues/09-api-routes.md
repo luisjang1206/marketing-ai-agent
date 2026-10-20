@@ -36,7 +36,7 @@ spec §4의 Route Handler 전부. 얇게: 입력 검증 → lib 호출 → JSON.
 import { loadConfig } from './config'
 import { getDb } from './db'
 import { createYoutubeApi } from './youtube/api'
-import { createAnthropicDraftLLM } from './draft/anthropic'
+import { createAnthropicDraftLLM, envLocalBaseURL } from './draft/anthropic'
 declare global { var __services: ReturnType<typeof build> | undefined }
 function build() {
   const cfg = loadConfig()
@@ -44,7 +44,7 @@ function build() {
   return {
     cfg, db: getDb(),
     youtube: createYoutubeApi(need('YOUTUBE_API_KEY')),
-    llm: createAnthropicDraftLLM({ apiKey: need('ANTHROPIC_API_KEY'), model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5', baseURL: process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com' }),
+    llm: createAnthropicDraftLLM({ apiKey: need('ANTHROPIC_API_KEY'), model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5', baseURL: envLocalBaseURL() }),   // .env.local 만 읽음. 셸 ANTHROPIC_BASE_URL 프록시 차단
     today: () => new Date().toLocaleDateString('sv-SE'),   // YYYY-MM-DD 로컬
   }
 }
