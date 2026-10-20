@@ -1,6 +1,6 @@
 # 04 영상 링크 파서 + YouTube Data API 클라이언트
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 02
 Agent: issue-implementer
@@ -36,7 +36,7 @@ export class YoutubeApiError extends Error { constructor(public status: number, 
 댓글 비활성 영상은 403 `commentsDisabled` → 빈 배열 반환(에러 아님).
 
 ## 단계
-- [ ] 1. `tests/url.test.ts`
+- [x] 1. `tests/url.test.ts`
 ```ts
 import { describe, it, expect } from 'vitest'
 import { parseVideoId } from '@/lib/youtube/url'
@@ -53,7 +53,7 @@ describe('parseVideoId', () => {
     ('rejects %s', (input) => expect(parseVideoId(input)).toBeNull())
 })
 ```
-- [ ] 2. `tests/youtube-api.test.ts` — fetch 모킹
+- [x] 2. `tests/youtube-api.test.ts` — fetch 모킹
 ```ts
 import { describe, it, expect, vi } from 'vitest'
 import { createYoutubeApi } from '@/lib/youtube/api'
@@ -100,8 +100,8 @@ describe('createYoutubeApi', () => {
   })
 })
 ```
-- [ ] 3. FAIL 확인
-- [ ] 4. 구현
+- [x] 3. FAIL 확인
+- [x] 4. 구현
 ```ts
 // url.ts
 const ID = /^[A-Za-z0-9_-]{11}$/
@@ -167,8 +167,12 @@ export function createYoutubeApi(apiKey: string, fetchImpl: typeof fetch = fetch
   }
 }
 ```
-- [ ] 5. PASS → 커밋 `feat: add YouTube URL parser and Data API client`
-- [ ] 6. 실키 확인(1회, 커밋 안 함): `YOUTUBE_API_KEY=... pnpm tsx -e "..."` 또는 vitest `it.skipIf(!process.env.YOUTUBE_API_KEY)` 케이스로 외롭여 채널 5개 받아보기. 재생목록 없는 채널(업로드 0)은 404 → 그 채널만 건너뛰도록 `listLatestVideos`에서 `YoutubeApiError` 404는 무시.
+- [x] 5. PASS → 커밋 `feat: add YouTube URL parser and Data API client`
+- [ ] 6. (코드 변경분 구현 완료, 실키 호출은 키 없어 건너뜀 — Comments 참조) 실키 확인(1회, 커밋 안 함): `YOUTUBE_API_KEY=... pnpm tsx -e "..."` 또는 vitest `it.skipIf(!process.env.YOUTUBE_API_KEY)` 케이스로 외롭여 채널 5개 받아보기. 재생목록 없는 채널(업로드 0)은 404 → 그 채널만 건너뛰도록 `listLatestVideos`에서 `YoutubeApiError` 404는 무시.
 
 ## 완료 기준
 테스트 녹색. 실키로 6채널 호출 시 ≤ 12유닛, 30개 메타 반환.
+
+## Comments
+
+TDD 순서대로 진행: `tests/url.test.ts`와 `tests/youtube-api.test.ts`를 먼저 쓰고 모듈이 없어 실패하는 것을 확인한 뒤 구현했고, 전체 `pnpm test` 37개 통과, `tsc --noEmit`과 eslint(새 파일 4개) 클린. 인터페이스(이름·시그니처·경로)는 이슈와 동일. 이슈와 다른 점: (1) 단계 6의 코드 변경분만 구현 — `listLatestVideos`에서 `playlistItems`가 `YoutubeApiError` 404이면 그 채널만 건너뛰고, 그 외 오류는 그대로 던진다(테스트 추가: 404 채널 건너뛰기, 403은 여전히 throw). 404 테스트는 건너뛰기 조건을 일시적으로 깨뜨려 실패하는 것도 확인했다. (2) 수집된 영상 ID가 0개면 `videos`를 호출하지 않고 `[]`을 반환 — 이슈 구현의 `for (i < ids.length)` 루프가 이미 이렇게 동작하므로 이슈와 충돌 없음, 테스트(`videos` 호출 0회 단언)로 고정했다. (3) 이슈 코드의 `any`를 `VideoItem`/`PlaylistItem`/`CommentThread`/`ApiErrorBody` 로컬 타입으로 대체(런타임 동일), `YoutubeApiError`에 `this.name = 'YoutubeApiError'` 추가. (4) 이슈의 테스트 코드는 `routes` 타입이 `unknown | fn`으로 합쳐져 `tsc --noEmit`에서 암묵적 any 오류가 나서, 람다 매개변수에 `(u: URL)`, `(id: string)` 타입만 붙였다(동작 동일). 실키 확인(6채널 ≤ 12유닛, 30개 메타)은 세션에 `.env.local`/`YOUTUBE_API_KEY`가 없어 실행하지 못했다 — 키가 생기면 한 번 확인 필요. 열린 질문: `getTopComments`의 `commentsDisabled` 판정이 `e.message === 'commentsDisabled'`(이슈 그대로)라 reason 문자열에 의존한다. 동작에는 문제 없으나 `e.status === 403`도 함께 보는 편이 더 단단할 수 있다(제안만, 변경 안 함).
