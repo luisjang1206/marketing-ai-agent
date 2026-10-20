@@ -1,6 +1,6 @@
 # 03 운영 규칙 + 자동 배정 (순수 함수)
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 02
 Agent: issue-implementer
@@ -28,7 +28,7 @@ export function pickProfile(profiles: ProfileStatus[], lastUsedId: string | null
 ```
 
 ## 단계
-- [ ] 1. `tests/rules.test.ts`
+- [x] 1. `tests/rules.test.ts`
 ```ts
 import { describe, it, expect } from 'vitest'
 import { checkPostAllowed } from '@/lib/rules'
@@ -47,7 +47,7 @@ describe('checkPostAllowed', () => {
   })
 })
 ```
-- [ ] 2. `tests/rotation.test.ts`
+- [x] 2. `tests/rotation.test.ts`
 ```ts
 import { describe, it, expect } from 'vitest'
 import { pickProfile } from '@/lib/browser/rotation'
@@ -60,8 +60,8 @@ describe('pickProfile', () => {
   it('falls back to first when last used id is unknown', () => expect(pickProfile(all, 'p9')).toBe('p1'))
 })
 ```
-- [ ] 3. 실행 → FAIL
-- [ ] 4. 구현
+- [x] 3. 실행 → FAIL
+- [x] 4. 구현
 ```ts
 // src/lib/rules.ts
 export const RULE_MESSAGES: Record<RuleReason, (i: RuleInput) => string> = {
@@ -89,7 +89,11 @@ export function pickProfile(profiles: ProfileStatus[], lastUsedId: string | null
   return null
 }
 ```
-- [ ] 5. PASS → 커밋 `feat: add operating rules and profile rotation`
+- [x] 5. PASS → 커밋 `feat: add operating rules and profile rotation`
 
 ## 완료 기준
 두 테스트 파일 녹색. 모듈에 `node:` import 없음(클라이언트 번들 가능).
+
+## Comments
+
+rules.test.ts and rotation.test.ts were written first and failed because the modules were missing. After implementing per the issue, both pass (9 tests), the full suite passes (20 tests across 4 files), and `tsc --noEmit` is clean. Grep confirms neither module has any import statement, so there is no `node:` or server-only dependency. No deviations from the issue. No open questions.
