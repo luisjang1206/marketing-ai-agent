@@ -1,6 +1,6 @@
 # 02 SQLite 저장소 + 리포지토리
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 01
 Agent: issue-implementer
@@ -67,7 +67,7 @@ export function getProfile(db, id: string): ProfileRow | undefined
 ```
 
 ## 단계
-- [ ] 1. 실패하는 테스트 `tests/repo.test.ts`
+- [x] 1. 실패하는 테스트 `tests/repo.test.ts`
 ```ts
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { DatabaseSync } from 'node:sqlite'
@@ -140,8 +140,8 @@ describe('jobs', () => {
   })
 })
 ```
-- [ ] 2. `pnpm test tests/repo.test.ts` → FAIL
-- [ ] 3. `src/lib/db.ts`
+- [x] 2. `pnpm test tests/repo.test.ts` → FAIL
+- [x] 3. `src/lib/db.ts`
 ```ts
 import { DatabaseSync } from 'node:sqlite'
 import { dbPath, ensureDataDirs } from './paths'
@@ -187,7 +187,7 @@ export function getDb(): DatabaseSync {
   return globalThis.__agentDb
 }
 ```
-- [ ] 4. 리포지토리 구현. 패턴(posts.ts 예):
+- [x] 4. 리포지토리 구현. 패턴(posts.ts 예):
 ```ts
 import type { DatabaseSync } from 'node:sqlite'
 export function insertPost(db: DatabaseSync, p: Omit<PostRow, 'id' | 'created_at'> & { created_at?: string }): number {
@@ -216,8 +216,12 @@ export function listPosts(db: DatabaseSync, limit = 100): PostLogRow[] {
 }
 ```
 drafts는 `valid`를 `0/1`로 저장하고 읽을 때 `!!row.valid`, `violations`는 `JSON.stringify/parse`. jobs의 `updateJob`은 `updated_at = datetime('now','localtime')`를 항상 갱신. `upsertVideos`는 `INSERT ... ON CONFLICT(id) DO UPDATE SET title=excluded.title, description=excluded.description, thumbnail_url=excluded.thumbnail_url, view_count=excluded.view_count, fetched_at=datetime('now','localtime')`.
-- [ ] 5. `pnpm test` → PASS
-- [ ] 6. 커밋 `feat: add sqlite storage and repositories`
+- [x] 5. `pnpm test` → PASS
+- [x] 6. 커밋 `feat: add sqlite storage and repositories`
 
 ## 완료 기준
 테스트 녹색. `getDb()`를 두 번 불러도 같은 인스턴스. `data/agent.db`가 첫 호출 때 생성된다.
+
+## Comments
+
+TDD 순서대로 진행: 테스트 작성 후 실패 확인(모듈 없음), 구현 후 전체 pnpm test 11개 통과, tsc --noEmit 클린. 이슈 인터페이스와 동일하게 구현. 다른 점: node:sqlite 타입 선언이 없어 @types/node를 ^20에서 ^22.20.5로 올림(lockfile 포함). 이슈에 없는 동작 선택: activeJob은 created_at DESC로 1건, profiles.upsertProfile은 checked_at을 현재 시각으로 기록, listProfiles는 id순. getDb() 싱글턴/data/agent.db 생성은 별도 테스트하지 않음(테스트가 cwd에 data/를 만들기 때문). 열린 질문 없음.
