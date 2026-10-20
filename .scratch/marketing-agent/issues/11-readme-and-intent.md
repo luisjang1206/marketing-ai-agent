@@ -1,6 +1,6 @@
 # 11 README · 제작 의도 · 시연 시나리오
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 10
 Agent: issue-implementer
@@ -33,7 +33,15 @@ Model: sonnet
 spec §13 시나리오 6컷을 타임라인 표로. 녹화 전 체크: `rm -rf data/agent.db data/screenshots/*`(프로필 폴더는 유지), 테스트 영상 ID, 유튜브2 로그인 확인, 화면 1280×800, 크롬 창이 대시보드를 가리지 않게 창 배치(대시보드 왼쪽, 크롬 오른쪽).
 
 ## 단계
-- [ ] 1. README 작성 → [ ] 2. `docs/demo.md` 작성 → [ ] 3. 커밋 `docs: README with setup, intent and demo script`
+- [x] 1. README 작성 → [x] 2. `docs/demo.md` 작성 → [x] 3. 커밋 `docs: README with setup, intent and demo script`
 
 ## 완료 기준
 새 클론에서 README만 보고 `pnpm dev`까지 도달 가능. 제작 의도 3문단이 ADR과 모순 없음.
+
+## Comments
+
+구현 (2026-10-21, issue-implementer): README와 `docs/demo.md`를 썼다. 문서 전용 이슈라 테스트 대상 코드는 없고, 모든 주장은 코드·설정·ADR과 대조했다. 검증한 것: 새 클론(임시 디렉터리)에서 `pnpm install --frozen-lockfile`이 통과하고 `pnpm test`가 키·`.env.local` 없이 162 passed(14 files)이며, `next dev`가 떠서 `/`가 200이다. 같은 클론에서 `config.yaml`의 자리표시자 `UC_REPLACE_WITH_TEST_CHANNEL`을 그대로 두면 `/api/config`가 500(채널 ID 형식 검사)이라, README에 "테스트 채널 ID를 꼭 바꿀 것"을 명시했다. `tsx`도 동작했다(`pnpm install`이 esbuild 빌드 스크립트 무시 경고를 내지만 영향 없음). 작업 트리에서 전체 `pnpm test`는 162 passed / 1 skipped(`generate.live.test.ts`, 커밋 대상 아님). README 안의 상대 링크 전부 존재 확인. 구현 확인으로 쓴 근거: 한 글자 타이핑은 `poster.ts`의 `pressSequentially(ch)` + `typing` 범위의 간격, 시청자 페르소나·운명원 후반 1회 전문 형태는 `prompt.ts` 시스템 프롬프트(코드 검증은 `validate.ts`의 `missing_brand`·`banned_phrase`·링크·해시태그·길이뿐이라 README에 "전문 형태·1회는 프롬프트가 지시, 코드는 언급 여부 등을 확인"이라고 그대로 썼다), 규칙 순서·문구는 `rules.ts`, 세 칸 이름·안내 문구·버튼·진행 상태 문구는 `page.tsx`·`PostPanel.tsx`·`StepHeader.tsx`. 화면 캡처 `docs/images/dashboard.png`는 메인 세션이 찍었고(2560×1600, 실데이터) 그대로 같은 커밋에 넣었다. 시연 직전 최신화는 이슈 12 몫이다.
+
+이슈와 다르게 한 것: ① **Blocked by 10 무시**(오케스트레이터 지시, 10은 `claimed` 그대로 두고 건드리지 않음). README는 현재 구현 기준이다. ② **Node 요구**: 이슈·ADR-0004의 "Node ≥ 25"를 그대로 썼다. 실제 코드가 요구하는 하한은 더 낮을 수 있다(`node:sqlite`는 22.13+에서 플래그 없이 쓸 수 있다) 하지만 25.6.1 외에서 돌려 보지 않았고 `engines`·`.nvmrc`도 없어서, "개발·검증 v25.6.1, 고정은 안 함"이라고 적었다. 참고로 설치된 vitest 5.0.5의 `engines`는 `^22.12.0 || ^24.0.0 || >=26.0.0`이라 Node 25를 명시하지 않지만 `pnpm install`은 경고 없이 통과했고 테스트도 돈다. ③ **데이터 초기화 명령**: 이슈의 `rm -rf data/agent.db data/screenshots/*` 대신 `rm -rf data/agent.db data/agent.db-wal data/agent.db-shm data/screenshots`로 썼다. `db.ts`가 `PRAGMA journal_mode = WAL`로 열어서 `-wal`·`-shm`이 남고, macOS 기본 셸(zsh)은 `data/screenshots/*`가 비어 있으면 "no matches found"로 명령 전체를 중단해 DB도 안 지워질 수 있다(`data/screenshots`는 `ensureDataDirs`가 다시 만든다). ④ **프로필 로그인 상태 재확인**: DB를 비우면 `profiles` 표(로그인 상태·@핸들)도 같이 지워지므로 녹화 전 체크에 "`/settings`에서 [상태 확인]" 항목을 추가했다. ⑤ **차단 컷**: 영상당 1개에 걸리는 경우 UI가 버튼을 미리 꺼서 차단 행이 생기지 않고, 허용 밖 링크를 직접 입력할 때만 차단 행이 생긴다. spec §13의 "차단 기록"을 그 둘로 나눠 적었다. ⑥ "오픈소스 출처" 제목은 CONTEXT.md가 `출처`를 근거 장면의 _Avoid_로 두어 "사용한 오픈소스와 외부 서비스"로 바꿨다. 목록은 `package.json` 의존성과 대조했고 이슈의 항목이 모두 실제 의존성이다(shadcn/ui, swr, yaml, zod, vitest, @anthropic-ai/sdk, playwright, next). 이슈 목록에 없던 것으로 Base UI·Tailwind·lucide·tsx·React와 보조 패키지(class-variance-authority, tw-animate-css, cn), 내장 `node:sqlite`, 외부 서비스(YouTube Data API v3, Anthropic API)를 더했다. yt-dlp는 의존성이 아니라 선택 설치 CLI라서 "쓰는 곳"에 선택 설치로 표시했다. ⑦ 대시보드 창 너비가 1024px(CSS) 미만이면 세 칸이 쌓이므로(`lg:grid-cols-3`), 왼쪽 창에 대시보드를 놓는 배치에 맞는 배율 확인을 녹화 전 체크에 넣었다.
+
+열린 질문: (a) 대시보드를 왼쪽·크롬을 오른쪽에 두는 배치에서 세 칸이 한 줄로 보이는지는 직접 확인하지 못했다(이슈 12 리허설에서 맞추고, 필요하면 `docs/demo.md` 5번을 고친다). (b) `AGENTS.md`의 Runtime Requirements TODO(Node 고정, `config.yaml` 자리표시자)는 아직 그대로다. 이슈 11 범위 밖이라 손대지 않았고, 사용자가 `config.yaml`에 실제 테스트 채널 ID를 넣은 변경은 커밋하지 않았다(작업 트리에만 있음). 저장소를 공개 제출하려면 그 ID를 커밋할지 사용자 결정이 필요하다(자리표시자 그대로면 새 클론은 README의 안내대로 ID를 직접 넣어야 한다). (c) 제안: `engines.node`와 `.nvmrc`로 Node를 고정하면 README의 "고정은 안 함" 문장을 지울 수 있다.
