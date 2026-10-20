@@ -36,9 +36,9 @@ export function buildSystemPrompt(rules: DraftRules, brandPhrases: string[]): st
 }
 
 // 영상마다 따로 생성하므로 "다양하게"라는 지시만으로는 같은 뼈대로 수렴한다. 그래서 짜임(시작·전문 꼴·궁금증·끝)을 코드가 고른다.
-// 최근 초안이 없으면 제목만으로 고른다(이슈 06). 있으면 최근 초안 text 가 실제로 쓴 꼴(test 로 판별)을 피하고,
-// 최근 초안 하나를 뺐을 때의 짜임과도 다르게 고른다. 꼴이 다 쓰였으면 가장 오래전에 쓴 꼴을 고른다.
-// 그래서 [다시 생성]이면 짜임이 바뀌고, 재시도(previous)는 그대로다.
+// 최근 초안이 없으면 제목만으로 고른다(이슈 06). 있으면 최근 초안 text 가 실제로 쓴 꼴(test 로 판별)을 먼저 피하고,
+// 그다음 최근 초안 하나를 뺐을 때의 짜임과 다르게 고른다. 꼴이 다 쓰였으면 가장 오래전에 쓴 꼴을 고른다.
+// 그래서 [다시 생성]이면 짜임이 바뀌고(자기 이전 초안이 맨 앞에 오므로), 재시도(previous)는 그대로다.
 // 옵션은 구체적인 것부터 판별 순서대로 둔다. test 가 없는 옵션은 나머지 전부를 받는다. Date·random 없음.
 type Option = { hint: string; test?: (t: string) => boolean }
 const firstSentence = (t: string) => /^[^.?!]*[.?!]?/.exec(t)![0]
@@ -114,7 +114,9 @@ function shapeOf(title: string, recent: string[]): number[] {
   if (!recent.length) return DIMS.map((d) => seed(d.salt + title) % d.opts.length)
   const prev = shapeOf(title, recent.slice(1))
   return DIMS.map((d, i) => {
-    // 우선순위: 직전 짜임(prev)이 아님 > 최근 초안이 안 쓴 꼴 > 가장 오래전에 쓴 꼴 > seed 순서.
+    // 우선순위: 최근 초안이 안 쓴 꼴 > 직전 짜임(prev)이 아님 > 가장 오래전에 쓴 꼴 > seed 순서.
+    // prev 를 먼저 피하면 유일하게 남은 빈 꼴을 막아 겹침을 만든다(이슈 14 R5). 재생성은 09 라우트가 자기 초안을 맨 앞에 두므로
+    // 원래 초안이 실제로 쓴 꼴이 '방금 쓴 꼴'로 잡혀 첫째 기준만으로 피해진다.
     // test 없는 나머지 꼴(장면 시작·담담한 끝)은 모델의 기본 뼈대라 판별이 안 되므로, 최근 초안이 있으면 방금 쓴 것으로 친다.
     const usedAt = (k: number) => {
       if (!d.opts[k].test) return -1
@@ -122,7 +124,8 @@ function shapeOf(title: string, recent: string[]): number[] {
     }
     const start = seed(d.salt + title + '\n' + recent.join('\n'))
     const order = d.opts.map((_, k) => (start + k) % d.opts.length)
-    return [...order].sort((x, y) => Number(x === prev[i]) - Number(y === prev[i]) || usedAt(y) - usedAt(x))[0]
+    const used = (k: number) => Number(usedAt(k) !== Infinity)
+    return [...order].sort((x, y) => used(x) - used(y) || Number(x === prev[i]) - Number(y === prev[i]) || usedAt(y) - usedAt(x))[0]
   })
 }
 
