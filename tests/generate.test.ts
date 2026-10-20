@@ -144,6 +144,11 @@ describe('buildUserPrompt recentDrafts', () => {
       SHAPE.exec(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 'p' + i }, recentDrafts: used4 }))!)![1]))
     expect([...openings]).toEqual(['물음표로 끝나는 질문 한 문장으로 시작'])
   })
+  it('does not take a later sentence with 들었/봤다 for the brand sentence', () => {
+    // 브랜드 문장은 전문 문장이어야 한다. "마음에 들었어요"·"봤다가"가 든 마지막 문장이 아니다.
+    expect(every(1, ['영상 보고 찔림. 운명원 잘 본다길래 궁금해요. 이 말이 제일 마음에 들었어요.']).has('"~다길래"')).toBe(false)
+    expect(every(1, ['영상 보고 찔림. 운명원 잘 본대서 궁금. 어제 이 영상 봤다가 울었음']).has('"~대서"')).toBe(false)
+  })
   it('splits sentences at ㅠㅠ and … so the hearsay form is read from the brand sentence only', () => {
     expect(every(1, ['친구가 한 말이 생각났음ㅠㅠ 운명원 다들 봤대']).has('"친구가 ~ 봤대"')).toBe(true)
     expect(every(1, ['어제 친구가 봤다는 영상… 운명원 잘 본다길래 나도']).has('"친구가 ~ 봤대"')).toBe(true)
