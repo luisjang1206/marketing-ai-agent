@@ -1,6 +1,6 @@
 # 08 댓글 게시 (Playwright) + 작업 러너
 
-Status: claimed
+Status: resolved
 Type: task
 Blocked by: 03, 06, 07
 Agent: browser-engineer
@@ -131,8 +131,8 @@ describe('startPostJob', () => {
 ```
 - [x] 2. FAIL 확인 → `poster.ts`, `runner.ts` 구현 → PASS
 - [x] 3. `scripts/try-post.ts`: `pnpm try:post <profileIndex> <videoId> "<text>"` → `postComment` 직접 호출, 진행 상태 콘솔 출력, 캡처 `data/screenshots/try-<ts>.png`.
-- [ ] 4. 수동 검증(본인 테스트 영상): 유튜브2 프로필로 1회 실제 게시. 셀렉터 틀리면 `SELECTORS`만 수정. 유튜브 한국어 화면에서 "댓글 추가..." placeholder 확인.
-- [ ] 5. 커밋 `feat: post comments via Playwright with job tracking`
+- [x] 4. 수동 검증(본인 테스트 영상): 유튜브2 프로필로 1회 실제 게시. 셀렉터 틀리면 `SELECTORS`만 수정. 유튜브 한국어 화면에서 "댓글 추가..." placeholder 확인.
+- [x] 5. 커밋 `feat: post comments via Playwright with job tracking`
 
 ## 완료 기준
 테스트 녹색. 실제 테스트 영상에 댓글 1건 게시되고 캡처에 하이라이트된 내 댓글이 보인다.
@@ -152,3 +152,9 @@ describe('startPostJob', () => {
 실제 실행 결과와 수정 (2026-10-20). 사용자가 23:39에 테스트 채널 영상 2개에서 `pnpm try:post 2 …`를 직접 실행했다. 타이핑과 등록은 성공했고(Data API로 두 영상 모두 댓글이 달린 것을 확인), 확인 단계에서 `locator.evaluateAll: ReferenceError: __name is not defined`로 `unknown` 실패가 났다. 원인은 tsx(esbuild `keepNames`)가 페이지 콜백 안의 이름 있는 함수를 `__name(...)`으로 감싸는데, 페이지에는 `__name`이 없다는 것이다. 실제로는 게시됐는데 실패로 기록되는, 중복 게시 위험이 그대로 드러난 사례다. 수정: (1) `context.addInitScript`로 문자열 `__name` 항등 shim을 넣는다. 지금과 앞으로의 모든 페이지 콜백을 막아 준다(임시 헤드리스 Chrome에서 shim이 없으면 같은 ReferenceError, 있으면 정상인 것을 확인). 페이지 콜백은 텍스트만 뽑고, 매칭은 Node의 순수 함수 `matchThread`가 한다(`tests/poster.test.ts` 7개). (2) 등록 전에 확인 단계와 같은 읽기를 한 번 돌린다. 읽기 코드에 버그가 있으면 게시 전에 실패하므로 재시도해도 안전하다. 내 댓글이 이미 있으면 다시 게시하지 않고 바로 확인 단계로 간다. 최선 노력이라 목록이 아직 안 떴으면 못 막지만, 실측에서는 입력창이 보일 때 목록도 이미 떠 있었다. 확인 폴링 중 읽기 오류는 재시도하고, 30초가 지나면 `timeout`과 함께 본문이 일치한 댓글의 작성자와 마지막 오류를 메시지에 남긴다. (3) `verifyComment`와 `pnpm try:post <n> <videoId> --verify-only "<text>"`를 추가했다. 읽기 전용이라 입력창 클릭·타이핑·등록 코드 경로가 없다. 알 수 없는 `--` 플래그는 거부해서 오타가 댓글 본문으로 게시되지 않게 했다.
 
 위험 (A) 실측과 범위 변경 (2026-10-20). 댓글 `#author-text`에는 `@핸들`이 보이는데 `checkLogin` 채널명은 표시 이름이어서, 첫 verify-only가 `timeout`이었다(본문이 일치한 댓글의 작성자는 내 핸들). 소유자 배지는 없었다. 변경: `checkLogin`은 아바타 메뉴의 핸들(`PROFILE_SELECTORS.accountHandle` = `ytd-active-account-header-renderer #channel-handle`, 2026-10-20 추가)을 먼저 읽고, 없으면 표시 이름을 쓴다. 따라서 `profiles.channel_name`과 이슈 09의 `ProfileView.channelName`은 이제 `@핸들`이다. `matchThread`는 포함 관계이거나, `@`·공백·대소문자를 무시하고 같으면 같은 작성자로 본다. 재실행 결과 두 영상 모두 verify-only `ok: true`(4.5초, 3.3초)였고, 캡처에서 내 댓글 하이라이트를 확인했으며 새 댓글은 생기지 않았다. 참고로 유튜브 UI 언어는 브라우저 locale이 아니라 계정 설정을 따른다(프로필 2는 영어 UI). 셀렉터는 id 기반이라 영향이 없고, 화면 문구로 요소를 고르지 않는다. 남은 일: 4단계 최종 실제 게시 1회(새 테스트 영상, 사용자 승인 대기). 프로필 1·3도 `pnpm try:login N check`로 핸들이 읽히는지 확인하는 것을 권장한다.
+
+4단계 완료, 이슈 종료 (2026-10-20). 사용자가 새 코드로 마지막 테스트 채널 영상에서 `pnpm try:post 2 <videoId> "<text>"`를 실행했다. `checkLogin`이 로그인됨과 `@핸들`을 돌려줬고, opening_profile → typing(약 4초 뒤) → posted(약 2초 뒤) → verified(등록 후 약 1초) → `{ ok: true }`로 끝났다. 캡처에는 빨간 테두리로 하이라이트된 내 댓글이 보인다(작성자는 `@핸들`, 방금 단 댓글). 이로써 완료 기준을 충족했다. 테스트 영상 3개에 각각 댓글이 1개씩 있고, 새 테스트 영상은 남아 있지 않다. 이후 재검증은 `--verify-only`로만 한다. 4단계의 '한국어 화면에서 "댓글 추가..." placeholder 확인'은 해당하지 않는다. 화면 언어는 계정 설정을 따르고(프로필 2는 영어), 셀렉터는 id 기반이다.
+
+리뷰 후속 (2026-10-20): `matchThread`는 기대 작성자가 `@`로 시작하면 `@`·대소문자를 무시하고 정확히 같을 때만 같은 작성자로 본다(`@Me5th`와 `@Me5thX`는 다른 작성자, 테스트 추가). 포함 일치는 표시 이름 폴백에만 쓴다. `try-post`는 `-`로 시작하는 인자를 모두 거부한다.
+
+프로필 3 (2026-10-20, 읽기 전용 확인): `pnpm try:login 3 check`의 채널명이 `@`로 시작하지 않아서, 프로필 3을 열고 아바타 메뉴만 열어 확인했다. 아무것도 입력하거나 바꾸지 않았다. `#channel-handle` 요소는 있지만 비어 있고, 계정 헤더에 "채널 만들기" 링크가 있다. 셀렉터 문제가 아니라 이 구글 계정에 유튜브 채널이 없는 것이다. 코드로 우회하지 않는다. **사용자 작업:** 프로필 3 계정으로 유튜브 채널을 만든 뒤 `pnpm try:login 3 check`가 `@핸들`을 돌려주는지 확인한다. 채널이 없는 지금 프로필 3로 게시하면 이렇게 될 것으로 본다(입력창 클릭은 채널 만들기 흐름을 열 수 있어 직접 해 보지 않았다). 자동 배정은 로그인된 프로필을 고르므로 프로필 3도 순서가 온다. 로그인 확인과 댓글 영역까지는 통과하지만, 채널 없는 계정에는 댓글 입력창(`#contenteditable-root`)이 뜨지 않으므로 `element_not_found`(댓글 입력창) 실패와 캡처로 끝나고 아무것도 게시되지 않는다. 실패는 하루 상한과 영상당 1개에 세지 않는다. 시연 전에 채널을 만들어 두는 것을 권장한다.

@@ -22,9 +22,9 @@ function refuse(message: string): void {
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const verifyOnly = args.includes(VERIFY_FLAG)
-  // Any other `--flag` (e.g. a typo of --verify-only) is refused, so it can never end up posted as the comment text.
+  // Any other option-like argument (`-v`, `--verify`, ...) is refused, so a typo can never end up posted as the comment text.
   const positional = args.filter((a) => a !== VERIFY_FLAG)
-  if (positional.some((a) => a.startsWith('--')) || positional.length !== 3) return refuse(USAGE)
+  if (positional.some((a) => a.startsWith('-')) || positional.length !== 3) return refuse(USAGE)
   const [n, videoId, text] = positional
   if (!/^\d+$/.test(n) || !videoId || !text) return refuse(USAGE)
   const cfg = loadConfig()

@@ -16,6 +16,10 @@ describe('matchThread', () => {
   it('accepts a display name when the comment shows the handle derived from it', () => {
     expect(matchThread([t('@Me5th', text)], text, 'Me 5th').index).toBe(0)
   })
+  it('matches a handle exactly, not as a prefix of a longer handle', () => {
+    expect(matchThread([t('@Me5thX', text)], text, '@Me5th')).toEqual({ index: -1, authors: ['@Me5thX'] })
+    expect(matchThread([t('@me5th', text)], text, '@Me5th').index).toBe(0)   // handles are case-insensitive
+  })
   it('rejects a body match by another author and reports who wrote it', () => {
     expect(matchThread([t('@someoneElse', text)], text, '@Me5th')).toEqual({ index: -1, authors: ['@someoneElse'] })
   })

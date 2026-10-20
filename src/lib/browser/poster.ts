@@ -130,10 +130,12 @@ async function readThreads(comments: Locator): Promise<ThreadText[]> {
 }
 
 // Comments show the author as an @handle. The expected author is the profile's handle, or its display name when the
-// handle could not be read; accept a plain substring match, or equality once '@', spaces and case are ignored
+// handle could not be read. A handle must match exactly (ignoring '@' and case), so '@Name5th' never matches
+// '@Name5thX'. A display-name fallback also accepts a substring match or equality once spaces are ignored
 // (a display name 'Name 5th' matches its derived handle '@Name5th').
 const authorKey = (s: string) => norm(s).replace(/^@/, '').replace(/\s+/g, '').toLowerCase()
-const sameAuthor = (shown: string, expected: string) => shown.includes(expected) || authorKey(shown) === authorKey(expected)
+const sameAuthor = (shown: string, expected: string) =>
+  authorKey(shown) === authorKey(expected) || (!expected.startsWith('@') && shown.includes(expected))
 
 // First thread whose body contains the first 30 chars of `text` (and whose author is `expectedAuthor`, if given),
 // plus the authors of every body match.
