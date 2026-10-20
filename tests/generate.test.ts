@@ -124,6 +124,12 @@ describe('buildUserPrompt recentDrafts', () => {
     const c = every(0, ['요즘 나 왜 이럴까? 운명원 잘 본다던데'])
     expect(c.has('"요즘"이나 "나/저"로 시작하는 내 상황 고백')).toBe(false); expect(c.has('물음표로 끝나는 질문 한 문장으로 시작')).toBe(true)
   })
+  it('reads a closing that talks to "너" as the inner-voice form, but not 너무', () => {
+    const inner = '그 사람에게 "너"라고 부르며 속으로 하는 말로 끝'
+    expect(every(3, ['영상 보고 찔림. 운명원 잘 본다던데 나만 서두른 거면 너한테 미안해']).has(inner)).toBe(false)
+    expect(every(3, ['영상 보고 찔림. 운명원 잘 본다던데 너를 아직 못 놓겠어']).has(inner)).toBe(false)
+    expect(every(3, ['영상 보고 찔림. 운명원 잘 본다던데 너무 궁금하다']).has(inner)).toBe(true)
+  })
   it('splits sentences at ㅠㅠ and … so the hearsay form is read from the brand sentence only', () => {
     expect(every(1, ['친구가 한 말이 생각났음ㅠㅠ 운명원 다들 봤대']).has('"친구가 ~ 봤대"')).toBe(true)
     expect(every(1, ['어제 친구가 봤다는 영상… 운명원 잘 본다길래 나도']).has('"친구가 ~ 봤대"')).toBe(true)
