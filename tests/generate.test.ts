@@ -29,3 +29,13 @@ describe('generateDraft', () => {
     expect(buildUserPrompt({ ...ctx, captions: null })).toContain('자막 없음')
   })
 })
+
+describe('buildUserPrompt shape hint', () => {
+  const shape = (title: string) => buildUserPrompt({ ...ctx, video: { ...ctx.video, title } }).split('\n').find((l) => l.startsWith('이번 댓글 짜임:'))
+  it('gives the same video the same shape and spreads different videos across shapes', () => {
+    expect(shape('남자심리 분석')).toBeDefined()
+    expect(shape('남자심리 분석')).toBe(shape('남자심리 분석'))
+    const titles = ['남자는 ‘원래 그런 사람’이 아닙니다', '남자 때문에 힘들어하는 여자들 공통점', '썸붕난 이유, 살리는 법', '남자심리 분석']
+    expect(new Set(titles.map(shape)).size).toBe(titles.length)
+  })
+})

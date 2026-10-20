@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -52,6 +52,7 @@ describe('createAnthropicDraftLLM', () => {
 describe('envLocalBaseURL', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'envlocal-'))
   afterEach(() => { vi.unstubAllEnvs() })
+  afterAll(() => { rmSync(dir, { recursive: true, force: true }) })
 
   it('reads ANTHROPIC_BASE_URL from the env file only, ignoring the shell', () => {
     vi.stubEnv('ANTHROPIC_BASE_URL', 'http://shell-proxy.invalid')
