@@ -17,9 +17,12 @@ src/lib/
   db.ts                openDb(file), getDb() -- schema + globalThis singleton
   rules.ts             checkPostAllowed()                         -- pure
   utils.ts             cn re-export for UI
+  services.ts          services() -- cfg/db/youtube/llm/model/today singleton for Route Handlers (needs both API keys)
+  api-types.ts         response types shared with the UI (type-only imports)
   repo/                videos, captions, drafts, posts, jobs, profiles -- SQL only
   browser/rotation.ts  pickProfile()                              -- pure
   youtube/             url.ts (pure), api.ts, captions.ts         -- issues 04, 05 (planned)
+  youtube/map.ts       toRow(meta, source) -- VideoMeta -> VideoRow (issue 09)
   draft/               prompt.ts, validate.ts (pure), generate.ts -- issue 06 (planned)
   browser/             launch.ts, profiles.ts, poster.ts          -- issues 07, 08 (planned)
   jobs/runner.ts       startPostJob(), runPostJob()               -- issue 08 (planned)

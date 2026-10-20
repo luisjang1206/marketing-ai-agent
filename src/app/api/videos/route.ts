@@ -26,8 +26,10 @@ export async function GET(req: Request) {
     }
   }
   const testIds = testChannelIds(cfg)
+  const allowed = allowedChannelIds(cfg)
+  // 허용 밖 영상은 게시 기록에 제목이 보이도록 저장만 하고(직접 입력 차단), 목록에는 내보내지 않는다.
   const body: VideosResponse = {
-    videos: listVideos(db).map((v) => ({ ...v, captionSource: getCaptions(db, v.id)?.source ?? null, hasDraft: !!latestDraft(db, v.id),
+    videos: listVideos(db).filter((v) => allowed.includes(v.channel_id)).map((v) => ({ ...v, captionSource: getCaptions(db, v.id)?.source ?? null, hasDraft: !!latestDraft(db, v.id),
       isTestChannel: testIds.includes(v.channel_id) })),
   }
   return NextResponse.json(body)

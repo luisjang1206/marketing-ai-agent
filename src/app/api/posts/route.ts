@@ -14,8 +14,8 @@ export async function POST(req: Request) {
   if (typeof body?.videoId !== 'string' || !body.videoId) {
     return NextResponse.json({ reason: 'invalid_request', message: '영상을 지정해야 합니다' }, { status: 400 })
   }
-  // 설정에 없는 프로필 번호는 data/profiles/<n> 을 새로 열게 되므로 여기서 막는다. 비우면 자동 배정.
-  const { profileId } = body
+  // 설정에 없는 프로필 번호는 data/profiles/<n> 을 새로 열게 되므로 여기서 막는다. 비우면(생략·null·빈 문자열) 자동 배정.
+  const profileId = body.profileId === '' ? null : body.profileId
   if (profileId != null && (typeof profileId !== 'string' || !profilesOf(cfg).some((p) => p.id === profileId))) {
     return NextResponse.json({ reason: 'invalid_profile', message: '알 수 없는 프로필입니다' }, { status: 400 })
   }

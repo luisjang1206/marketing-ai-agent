@@ -5,7 +5,7 @@
 Next.js App Router layer: the single-page Korean dashboard, the `/settings` profile login page, and thin Route Handlers under `src/app/api/`. Feature components live in `src/components/`, shadcn primitives in `src/components/ui/`; both follow this file.
 
 - Downstream: every Route Handler calls into `src/lib/` (see [src/lib/AGENTS.md](../lib/AGENTS.md)). UI reads state only through these handlers.
-- Current state: create-next-app scaffold (`page.tsx`, `layout.tsx`) plus shadcn primitives. Route Handlers land in issue 09, dashboard and settings UI in issue 10.
+- Current state: all Route Handlers under `src/app/api/` are in place (issue 09; the screenshot route is issue 10). `page.tsx` and `layout.tsx` are still the create-next-app scaffold plus shadcn primitives; the dashboard and settings UI land in issue 10.
 
 ## Tech Stack & Constraints
 

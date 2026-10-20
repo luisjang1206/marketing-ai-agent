@@ -5,8 +5,16 @@ import type { DraftRow } from './repo/drafts'
 import type { JobRow } from './repo/jobs'
 import type { PostLogRow } from './repo/posts'
 import type { VideoRow } from './repo/videos'
+import type { StartResult } from './jobs/runner'
 
-export type ApiError = { reason: string; message: string }
+// 게시 시작이 거절되는 사유: 운영 규칙 코드 + busy · no_profile · video_not_found · no_draft · invalid_draft (runner 가 정한다).
+export type StartFailReason = Extract<StartResult, { ok: false }>['reason']
+// Route Handler 가 돌려주는 사유 코드 전부. 값을 더하면 여기에도 더한다.
+export type ApiReason = StartFailReason
+  | 'invalid_url' | 'not_found' | 'upstream_error'          // 영상 목록 · 직접 입력 · 초안
+  | 'invalid_request' | 'invalid_profile' | 'job_not_found'  // 게시
+  | 'profile_not_found' | 'check_failed'                     // 프로필
+export type ApiError = { reason: ApiReason; message: string }
 
 export type ConfigResponse = { profiles: Profile[]; dailyMax: number; allowedChannelIds: string[]; testChannelIds: string[];
   comment: { min: number; max: number; brand: string } }

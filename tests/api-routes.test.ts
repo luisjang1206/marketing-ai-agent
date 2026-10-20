@@ -108,6 +108,11 @@ describe('GET /api/videos', () => {
     expect(videos[1]).toMatchObject({ captionSource: null, hasDraft: false, isTestChannel: true })
     expect(yt.listLatestVideos).not.toHaveBeenCalled()
   })
+  it('leaves out stored videos whose channel is not allowed', async () => {
+    upsertVideos(db, [row('in1', X), row('out1', OUT, { source: 'direct' })])
+    const { videos } = (await (await getVideos(get('/api/videos'))).json()) as VideosResponse
+    expect(videos.map((v) => v.id)).toEqual(['in1'])
+  })
   it('refresh=1 fetches the allowed channels first and stores the result as list', async () => {
     yt.listLatestVideos.mockResolvedValue([meta('l1', X), meta('l2', T)])
     const { videos } = (await (await getVideos(get('/api/videos?refresh=1'))).json()) as VideosResponse
@@ -144,6 +149,14 @@ describe('POST /api/videos (Direct Link)', () => {
     expect(res.status).toBe(409)
     expect(await res.json()).toEqual({ reason: 'not_allowed_channel', message: '허용 채널의 영상이 아닙니다' })
     expect(listPosts(db)).toMatchObject([{ video_id: ID, profile_id: '-', status: 'blocked', reason: 'not_allowed_channel', text: null, video_title: `제목 ${ID}` }])
+  })
+  it('keeps a blocked video out of the list while the Post Log still shows its title', async () => {
+    yt.getVideo.mockResolvedValue(meta(ID, OUT))
+    await postVideos(post('/api/videos', { url: `https://youtu.be/${ID}` }))
+    const { videos } = (await (await getVideos(get('/api/videos'))).json()) as VideosResponse
+    expect(videos.map((v) => v.id)).not.toContain(ID)
+    expect(getVideo(db, ID)).toBeDefined()
+    expect(listPosts(db)[0]).toMatchObject({ video_id: ID, video_title: `제목 ${ID}` })
   })
   it('200 stores an allowed-channel video as direct and writes no post row', async () => {
     yt.getVideo.mockResolvedValue(meta(ID, T))
@@ -278,6 +291,13 @@ describe('POST /api/posts', () => {
   })
   it('assigns the next logged-in profile when profileId is omitted', async () => {
     const { jobId } = (await (await postsReq({ videoId: 'v1' })).json()) as { jobId: string }
+    await vi.waitFor(() => expect(getJob(db, jobId)?.state).toBe('verified'))
+    expect(postComment).toHaveBeenCalledWith(expect.objectContaining({ userDataDir: profileDir(1) }))
+  })
+  it.each([[''], [null]])('treats profileId %j as automatic assignment', async (profileId) => {
+    const res = await postsReq({ videoId: 'v1', profileId })
+    expect(res.status).toBe(202)
+    const { jobId } = (await res.json()) as { jobId: string }
     await vi.waitFor(() => expect(getJob(db, jobId)?.state).toBe('verified'))
     expect(postComment).toHaveBeenCalledWith(expect.objectContaining({ userDataDir: profileDir(1) }))
   })
