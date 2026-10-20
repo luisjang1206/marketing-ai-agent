@@ -83,20 +83,49 @@ describe('buildUserPrompt recentDrafts', () => {
     SHAPE.exec(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 't' + i }, recentDrafts }))!)![part + 1]))
   it('counts only the most specific hearsay form a draft used', () => {
     const s = assigned(['영상 보고 찔림. 친구가 운명원 사주 봤다고 하던데 나도 궁금해요'], 1)
-    expect(s.has('"친구가 ~ 봤다고 하던데"')).toBe(false)
+    expect(s.has('"친구가 ~ 봤대"')).toBe(false)
     expect(s.has('"~다던데"')).toBe(true)
-    expect(s.size).toBe(5)
+    expect(s.size).toBe(every(1).size - 1)
   })
   it('does not mistake unrelated words for a used form', () => {
     // "봤다가"·"친구가 한 말"은 친구 전문이 아니다
-    expect(assigned(['이 영상 봤다가 어제 친구가 한 말이 생각났음. 운명원 잘 본다던데 나도 궁금해요'], 1).has('"친구가 ~ 봤다고 하던데"')).toBe(true)
+    expect(assigned(['이 영상 봤다가 어제 친구가 한 말이 생각났음. 운명원 잘 본다던데 나도 궁금해요'], 1).has('"친구가 ~ 봤대"')).toBe(true)
     // "…남자"로 끝나는 건 반말 다짐이 아니다
     expect(assigned(['영상 보고 생각해 보니 결국 문제는 그 남자'], 3).has('반말 혼잣말 다짐으로 끝')).toBe(true)
     // "와닿았어요"는 감탄 시작이 아니다
     expect(assigned(['와닿았어요 이 말. 운명원 잘 본다던데 궁금해요'], 0).has('웃음이나 감탄으로 시작')).toBe(true)
   })
-  it('recognises the contracted "얘길 들었는데" as the 들어서 hearsay form', () => {
-    expect(assigned(['영상 보고 찔림. 운명원에서 내 패턴도 본다는 얘길 들었는데 궁금해요'], 1).has('"~라는 얘기를 들어서"')).toBe(false)
+  // 이슈 14: 짧은 전문 어미, 한 문장짜리 "처음엔" 시작, 판별식 정리
+  const every = (part: 0 | 1 | 3, recentDrafts: string[] = []) => new Set(Array.from({ length: 300 }, (_, i) =>
+    SHAPE.exec(line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 'v' + i }, recentDrafts }))!)![part + 1]))
+  const NO_CLOSING = '끝맺음 문장 없이 브랜드 문장으로 마무리'
+  it('gives hearsay hints of at most 7 characters, each recognised as its own form only', () => {
+    const hints = [...every(1)]
+    expect(hints.length).toBeGreaterThanOrEqual(7)   // 최근 초안 6개(목록 5 + 재생성)여도 빈 꼴이 남는다
+    for (const h of hints) {
+      expect([...h.replace(/["~\s]/g, '')].length).toBeLessThanOrEqual(7)
+      const left = every(1, [`영상 보고 찔림. 운명원 ${h.replace(/"/g, '').replace('~', '잘 본')} 나도 궁금해요`])
+      expect(left.has(h)).toBe(false); expect(left.size).toBe(hints.length - 1)
+    }
+  })
+  it('makes the "처음엔" opening one sentence with no separate closing', () => {
+    const lines = Array.from({ length: 300 }, (_, i) => line(buildUserPrompt({ ...ctx, video: { ...ctx.video, title: 'v' + i } }))!)
+    const doubt = lines.filter((l) => l.includes('처음엔'))
+    expect(doubt.length).toBeGreaterThan(0)
+    for (const l of doubt) { expect(SHAPE.exec(l)![1]).toContain('한 문장'); expect(SHAPE.exec(l)![4]).toBe(NO_CLOSING) }
+    for (const l of lines.filter((l) => !l.includes('처음엔'))) expect(SHAPE.exec(l)![4]).not.toBe(NO_CLOSING)
+  })
+  it('reads the content of an opening or closing before a trailing emotion or question mark', () => {
+    const a = every(3, ['영상 보고 찔림. 운명원 잘 본다던데 이번 주엔 연락 안 할래ㅠㅠ'])
+    expect(a.has('이번 주에 해 볼 행동으로 끝')).toBe(false); expect(a.has('"ㅠㅠ"나 "ㅋㅋ" 같은 짧은 감정 표현으로 끝')).toBe(true)
+    const b = every(3, ['영상 보고 찔림. 운명원 잘 본다던데 오늘부터 참아볼까?'])
+    expect(b.has('이번 주에 해 볼 행동으로 끝')).toBe(false); expect(b.has('다른 시청자에게 묻는 물음표 문장으로 끝')).toBe(true)
+    const c = every(0, ['요즘 나 왜 이럴까? 운명원 잘 본다던데'])
+    expect(c.has('"요즘"이나 "나/저"로 시작하는 내 상황 고백')).toBe(false); expect(c.has('물음표로 끝나는 질문 한 문장으로 시작')).toBe(true)
+  })
+  it('splits sentences at ㅠㅠ and … so the hearsay form is read from the brand sentence only', () => {
+    expect(every(1, ['친구가 한 말이 생각났음ㅠㅠ 운명원 다들 봤대']).has('"친구가 ~ 봤대"')).toBe(true)
+    expect(every(1, ['어제 친구가 봤다는 영상… 운명원 잘 본다길래 나도']).has('"친구가 ~ 봤대"')).toBe(true)
   })
   it('avoids a hearsay form that recent drafts already used', () => {
     const friend = ['영상 보고 찔림. 친구가 운명원 사주로 인연 봤다던데 일단 참아볼래요']
