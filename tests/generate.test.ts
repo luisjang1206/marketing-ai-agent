@@ -130,6 +130,12 @@ describe('buildUserPrompt recentDrafts', () => {
     expect(every(3, ['영상 보고 찔림. 운명원 잘 본다던데 너를 아직 못 놓겠어']).has(inner)).toBe(false)
     expect(every(3, ['영상 보고 찔림. 운명원 잘 본다던데 너무 궁금하다']).has(inner)).toBe(true)
   })
+  it('does not hand out the catch-all opening or closing while the channel has recent drafts', () => {
+    const recentOne = ['요즘 나 연락 텀 하나에 하루가 왔다갔다 함. 운명원 사주 본다던데 이번 주엔 참아볼래']
+    expect(every(0, recentOne).has('영상 속 장면을 내 말로 짧게 다시 짚으며 시작')).toBe(false)
+    expect(every(3, recentOne).has('내 상황을 담담하게 정리하는 말로 끝')).toBe(false)
+    expect(every(0).has('영상 속 장면을 내 말로 짧게 다시 짚으며 시작')).toBe(true)   // 최근 초안이 없으면 이슈 06 그대로
+  })
   it('splits sentences at ㅠㅠ and … so the hearsay form is read from the brand sentence only', () => {
     expect(every(1, ['친구가 한 말이 생각났음ㅠㅠ 운명원 다들 봤대']).has('"친구가 ~ 봤대"')).toBe(true)
     expect(every(1, ['어제 친구가 봤다는 영상… 운명원 잘 본다길래 나도']).has('"친구가 ~ 봤대"')).toBe(true)
