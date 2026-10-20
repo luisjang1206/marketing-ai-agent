@@ -41,6 +41,9 @@ describe('parseVtt', () => {
   it('skips the whole header block including Style/::cue lines', () => {
     expect(parseVtt(VTT_STYLED)).toBe('남자 심리는 알다가도 모르겠어요 ㅠㅠ')
   })
+  it('keeps the first cue when the header has no blank line before it', () => {
+    expect(parseVtt('WEBVTT\nKind: captions\nLanguage: ko\n00:00:00.000 --> 00:00:02.000\n안녕하세요\n')).toBe('안녕하세요')
+  })
 })
 describe('fetchCaptions', () => {
   it('returns none when yt-dlp is missing', async () => {

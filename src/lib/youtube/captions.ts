@@ -10,7 +10,7 @@ export function parseVtt(vtt: string): string {
   const lines: string[] = []
   let inHeader = /^\uFEFF?WEBVTT/.test(vtt)
   for (const raw of vtt.split(/\r?\n/)) {
-    if (inHeader) { if (!raw.trim()) inHeader = false; continue }
+    if (inHeader) { if (!raw.trim() || raw.includes('-->')) inHeader = false; continue }
     const line = raw.replace(/<[^>]+>/g, '').trim()
     if (!line || /-->/.test(line) || /^\d+$/.test(line)) continue
     if (lines[lines.length - 1] !== line) lines.push(line)
