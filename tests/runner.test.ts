@@ -91,25 +91,34 @@ describe('runPostJob', () => {
     expect(getJob(deps!.db, 'j1')).toMatchObject({ state: 'failed' })
     expect(listPosts(deps!.db)[0]).toMatchObject({ status: 'failed', reason: 'unknown', video_id: 'v1' })
   })
-  it('records the success as soon as the comment is verified, so the same video is blocked while the window is still open', async () => {
-    deps!.post = vi.fn<Post>(({ onProgress }) => { onProgress('opening_profile'); onProgress('typing'); onProgress('posted'); onProgress('verified'); return new Promise(() => {}) })
+  it('records the success as soon as the comment is verified, and keeps the job active until post closes the window', async () => {
+    let release!: (r: Awaited<ReturnType<Post>>) => void
+    deps!.post = vi.fn<Post>(({ onProgress }) => { onProgress('opening_profile'); onProgress('typing'); onProgress('posted'); onProgress('verified'); return new Promise((res) => { release = res }) })
     const r = await startPostJob({ videoId: 'v1' }, deps); await flush()
     const jobId = (r as { jobId: string }).jobId
+    const shot = path.join(screenshotDir(), jobId + '.png')
     const [row] = listPosts(deps!.db)
-    expect(row).toMatchObject({ status: 'success', video_id: 'v1', profile_id: 'p1', screenshot_path: path.join(screenshotDir(), jobId + '.png') })
-    expect(getJob(deps!.db, jobId)).toMatchObject({ state: 'verified', post_id: row.id })
+    expect(row).toMatchObject({ status: 'success', video_id: 'v1', profile_id: 'p1', screenshot_path: shot })
+    expect(getJob(deps!.db, jobId)).toMatchObject({ state: 'posted', post_id: null })   // 창이 닫힐 때까지 진행 중
+    // 창이 열려 있는 동안: 같은 영상은 영상당 1개로 차단, 다른 영상은 진행 중 작업으로 busy
     expect(await startPostJob({ videoId: 'v1', profileId: 'p2' }, deps)).toMatchObject({ ok: false, status: 409, reason: 'already_posted' })
+    upsertVideos(deps!.db, [{ ...video, id: 'v3' }])
+    insertDraft(deps!.db, { video_id: 'v3', concern: 'c', evidence: 'e', text: 'x'.repeat(50), valid: true, violations: [], model: 'm' })
+    expect(await startPostJob({ videoId: 'v3' }, deps)).toMatchObject({ ok: false, status: 409, reason: 'busy' })
+    release({ ok: true, screenshotPath: shot }); await flush()
+    expect(getJob(deps!.db, jobId)).toMatchObject({ state: 'verified', message: '댓글 보기', screenshot_path: shot, post_id: row.id })
+    expect(listPosts(deps!.db).filter((p) => p.status === 'success')).toHaveLength(1)
   })
   it('keeps a verified success when post later returns a failure', async () => {
     deps!.post = vi.fn<Post>(async ({ onProgress }) => { onProgress('verified'); return { ok: false, reason: 'unknown', message: '알 수 없음', screenshotPath: '/f.png' } })
     const r = await startPostJob({ videoId: 'v1' }, deps); await flush()
-    expect(getJob(deps!.db, (r as { jobId: string }).jobId)).toMatchObject({ state: 'verified' })
     expect(listPosts(deps!.db).map((p) => p.status)).toEqual(['success'])
+    expect(getJob(deps!.db, (r as { jobId: string }).jobId)).toMatchObject({ state: 'verified', post_id: listPosts(deps!.db)[0].id })
   })
   it('keeps a verified success when post later throws', async () => {
     deps!.post = vi.fn<Post>(async ({ onProgress }) => { onProgress('verified'); throw new Error('window closed') })
     const r = await startPostJob({ videoId: 'v1' }, deps); await flush()
-    expect(getJob(deps!.db, (r as { jobId: string }).jobId)).toMatchObject({ state: 'verified' })
     expect(listPosts(deps!.db).map((p) => p.status)).toEqual(['success'])
+    expect(getJob(deps!.db, (r as { jobId: string }).jobId)).toMatchObject({ state: 'verified', post_id: listPosts(deps!.db)[0].id })
   })
 })

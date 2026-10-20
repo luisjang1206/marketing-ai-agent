@@ -66,14 +66,17 @@ export async function startPostJob(input: { videoId: string; profileId?: string 
 }
 
 // Runs in the background after startPostJob returns, so it never throws: any exception is recorded as failed/unknown.
-// 영상당 1개: the success row is written the moment post reports 'verified' (post keeps the window open a few
-// seconds after that), so there is never a moment where the job is no longer active and the video has no success row.
-// Once recorded, a later failure or throw from post never adds a second row or downgrades the job.
+// post keeps the profile's window open a few seconds after reporting 'verified'. At that moment only the success row is
+// written, so One Per Video already blocks the video; the job stays 'posted' (still active), so activeJob() keeps refusing
+// other jobs until post() returns and the profile directory is free again. Then the job becomes 'verified'.
+// Once the success row exists, a later failure or throw from post never adds a second row or downgrades the job.
 export async function runPostJob(jobId: string, deps: RunnerDeps): Promise<void> {
   const { db, cfg } = deps
   let job: JobRow | undefined
   let text: string | null = null
-  let successPostId = null as number | null
+  let success = null as { postId: number; shot: string } | null
+  const finishSuccess = (s: { postId: number; shot: string }) =>
+    updateJob(db, jobId, { state: 'verified', message: PROGRESS_MESSAGES.verified, screenshot_path: s.shot, post_id: s.postId })
   try {
     job = getJob(db, jobId)
     if (!job) return
@@ -85,12 +88,10 @@ export async function runPostJob(jobId: string, deps: RunnerDeps): Promise<void>
     const postText = draft.text
     const screenshotPath = path.join(screenshotDir(), jobId + '.png')
 
-    // Inserts the success row and marks the job verified together (synchronous node:sqlite calls, no await between).
     const recordSuccess = (shot: string) => {
-      if (successPostId !== null) return
-      successPostId = insertPost(db, { video_id: j.video_id, profile_id: j.profile_id, draft_id: j.draft_id, text: postText,
-        status: 'success', reason: null, screenshot_path: shot })
-      updateJob(db, jobId, { state: 'verified', message: PROGRESS_MESSAGES.verified, screenshot_path: shot, post_id: successPostId })
+      if (success) return
+      success = { postId: insertPost(db, { video_id: j.video_id, profile_id: j.profile_id, draft_id: j.draft_id, text: postText,
+        status: 'success', reason: null, screenshot_path: shot }), shot }
     }
 
     const result = await deps.post({
@@ -101,27 +102,30 @@ export async function runPostJob(jobId: string, deps: RunnerDeps): Promise<void>
       typingDelayMs: [cfg.typing.min_delay_ms, cfg.typing.max_delay_ms],
       screenshotPath,
       onProgress: (p) => {
-        if (successPostId !== null) return
+        if (success) return
         // post saves the screenshot to `screenshotPath` before reporting 'verified'.
         if (p === 'verified') recordSuccess(screenshotPath)
         else updateJob(db, jobId, { state: p, message: PROGRESS_MESSAGES[p] })
       },
     })
 
-    if (successPostId !== null) return
-    if (result.ok) return recordSuccess(result.screenshotPath)   // a post that never reported 'verified'
-    const postId = insertPost(db, { video_id: j.video_id, profile_id: j.profile_id, draft_id: j.draft_id, text: postText,
-      status: 'failed', reason: result.reason, screenshot_path: result.screenshotPath })
-    updateJob(db, jobId, { state: 'failed', message: result.message, screenshot_path: result.screenshotPath, post_id: postId })
+    if (result.ok) recordSuccess(result.screenshotPath)   // no-op when already recorded at 'verified'
+    if (success) return finishSuccess(success)
+    if (!result.ok) {
+      const postId = insertPost(db, { video_id: j.video_id, profile_id: j.profile_id, draft_id: j.draft_id, text: postText,
+        status: 'failed', reason: result.reason, screenshot_path: result.screenshotPath })
+      updateJob(db, jobId, { state: 'failed', message: result.message, screenshot_path: result.screenshotPath, post_id: postId })
+    }
   } catch (err) {
-    if (!job || successPostId !== null) return
+    if (!job) return
     try {
+      if (success) return finishSuccess(success)
       const message = `${FAILURE_LABELS.unknown}: ${err instanceof Error ? err.message : String(err)}`
       const postId = insertPost(db, { video_id: job.video_id, profile_id: job.profile_id, draft_id: job.draft_id, text,
         status: 'failed', reason: 'unknown', screenshot_path: null })
       updateJob(db, jobId, { state: 'failed', message, post_id: postId })
     } catch {
-      // Recording the failure failed too (e.g. the db is gone); nothing left to report to.
+      // Recording the outcome failed too (e.g. the db is gone); nothing left to report to.
     }
   }
 }

@@ -137,14 +137,16 @@ export async function postComment(opts: { userDataDir: string; videoId: string; 
       index = await findMyThread(threads, needle, author)
     }
 
-    // 7. 하이라이트 + 캡처
+    // 7. 하이라이트 + 캡처. 여기부터는 내 댓글이 확인된 상태다. 이 단계의 오류를 실패로 기록하면
+    //    영상당 1개에 세지 않아 재시도 때 중복 게시가 되므로, 하이라이트·캡처·대기 오류는 모두 무시하고 성공을 돌려준다.
     const mine = threads.nth(index)
-    await mine.scrollIntoViewIfNeeded()
-    await mine.evaluate((el, outline) => { (el as HTMLElement).style.outline = outline }, HIGHLIGHT)
-    await page.screenshot({ path: screenshotPath, fullPage: false })
+    try {
+      await mine.scrollIntoViewIfNeeded()
+      await mine.evaluate((el, outline) => { (el as HTMLElement).style.outline = outline }, HIGHLIGHT)
+    } catch { /* 하이라이트는 꾸밈일 뿐이다 */ }
+    await page.screenshot({ path: screenshotPath, fullPage: false }).catch(() => undefined)
     onProgress('verified')
-    // The comment is already posted and verified; closing the window during the hold must not turn it into a failure.
-    await page.waitForTimeout(VERIFIED_HOLD_MS).catch(() => undefined)
+    await page.waitForTimeout(VERIFIED_HOLD_MS).catch(() => undefined)   // 대기 중 창을 닫아도 성공
     return { ok: true, screenshotPath }
   } catch (err) {
     // 8. 실패: 사유 분류 + 캡처 시도
