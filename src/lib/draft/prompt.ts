@@ -84,7 +84,7 @@ const ANGLES: Option[] = [
 const CLOSINGS: Option[] = [
   { hint: '이번 주에 해 볼 행동으로 끝', test: (t) => /이번 ?주|주말|오늘|내일|당분간/.test(lastSentence(t)) },
   { hint: '반말 혼잣말 다짐으로 끝', test: (t) => /(야지|거임|거야|할래|겠다|하자|보자|말자)$/.test(tailless(t)) },
-  { hint: '그 사람에게 속으로 하는 말로 끝', test: (t) => /오빠|자기야|(^|\s)너[는가도]?\s/.test(lastSentence(t)) },
+  { hint: '그 사람에게 "너"라고 부르며 속으로 하는 말로 끝', test: (t) => /오빠|자기야|(^|[\s,])너([는가도를랑]|한테|[\s,.!?~]|$)/.test(lastSentence(t)) },
   { hint: '다른 시청자에게 묻는 물음표 문장으로 끝', test: (t) => /\?[\s.!~ㅠㅜㅋㅎ]*$/.test(t) },
   { hint: '"ㅠㅠ"나 "ㅋㅋ" 같은 짧은 감정 표현으로 끝', test: (t) => /[ㅠㅜㅋㅎ]+[\s.!~]*$/.test(t) },
   { hint: '내 상황을 담담하게 정리하는 말로 끝' },
