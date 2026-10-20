@@ -50,6 +50,7 @@ describe('buildUserPrompt recentDrafts', () => {
     const p = buildUserPrompt({ ...ctx, recentDrafts: recent })
     expect(p).toContain('같은 채널에 이미 쓴 댓글')
     for (const t of recent) expect(p).toContain(t)
+    expect(p).toContain('이미 쓴 브랜드 문장:\n- 운명원 사주 본다던데 나도 볼까\n- 운명원 얘기를 들어서 더 생각나요')
   })
   it('is deterministic and changes the shape when a previous draft of the same video is added (regenerate)', () => {
     const c = { ...ctx, recentDrafts: recent }
