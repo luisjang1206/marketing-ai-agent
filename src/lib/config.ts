@@ -41,8 +41,9 @@ export type Profile = { id: string; label: string; index: number }
 export function parseConfig(yamlText: string): AppConfig {
   return AppConfigSchema.parse(parse(yamlText))
 }
+// turbopackIgnore: 경로 인자를 next build 가 프로젝트 전체 추적으로 보지 않게 한다 (paths.ts 참고).
 export function loadConfig(p = path.join(process.cwd(), 'config.yaml')): AppConfig {
-  return parseConfig(readFileSync(p, 'utf8'))
+  return parseConfig(readFileSync(/* turbopackIgnore: true */ p, 'utf8'))
 }
 export function profilesOf(cfg: AppConfig): Profile[] {
   return cfg.profiles.map((label, i) => ({ id: `p${i + 1}`, label, index: i + 1 }))

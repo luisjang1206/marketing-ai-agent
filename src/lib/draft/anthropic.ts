@@ -9,8 +9,9 @@ export const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com'
 
 // Next 는 셸에 이미 있는 변수를 .env.local 값으로 덮지 않으므로 process.env 로는 둘을 구분할 수 없다.
 // .env.local 파일만 읽어 ANTHROPIC_BASE_URL 을 찾고, 없으면 공식 주소.
+// turbopackIgnore: 경로 인자를 next build 가 프로젝트 전체 추적으로 보지 않게 한다 (paths.ts 참고).
 export function envLocalBaseURL(file = path.join(process.cwd(), '.env.local')): string {
-  try { return parseEnv(readFileSync(file, 'utf8')).ANTHROPIC_BASE_URL || DEFAULT_ANTHROPIC_BASE_URL } catch { return DEFAULT_ANTHROPIC_BASE_URL }
+  try { return parseEnv(readFileSync(/* turbopackIgnore: true */ file, 'utf8')).ANTHROPIC_BASE_URL || DEFAULT_ANTHROPIC_BASE_URL } catch { return DEFAULT_ANTHROPIC_BASE_URL }
 }
 
 const SUBMIT_DRAFT = {
