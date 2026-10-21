@@ -6,7 +6,10 @@ import { launchProfile } from './launch'
 // Never select by visible text: the UI language follows the Google account, not the browser locale.
 export const SELECTORS = {
   avatar: 'button#avatar-btn',
-  comments: 'ytd-comments#comments',
+  // Two layouts, chosen by YouTube per account. Classic: ytd-comments#comments below the player. Side panel: an
+  // ytd-comments inside the comments engagement panel on the right, open on load. Both containers exist in both
+  // layouts, but only the one in use is visible, so :visible keeps every later lookup inside the one in use.
+  comments: 'ytd-comments#comments:visible, ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"] ytd-comments:visible',
   placeholder: '#placeholder-area',
   editor: '#contenteditable-root',
   submit: '#submit-button button, #submit-button',
@@ -106,6 +109,7 @@ async function openComments(page: Page, videoId: string): Promise<{ comments: Lo
   if (!loggedIn) throw new PostFailure('not_logged_in')
 
   // ytd-comments 는 지연 렌더링이라, 입력창(또는 댓글 사용 중지 안내)이 뜰 때까지 휠로 내린다.
+  // SELECTORS.comments 는 보이는 댓글 영역(기본 화면은 영상 아래, 사이드 패널 화면은 오른쪽 패널) 하나만 고른다.
   const comments = page.locator(SELECTORS.comments)
   const placeholder = comments.locator(SELECTORS.placeholder).first()
   const commentsOff = comments.locator(SELECTORS.commentsOff).first()
