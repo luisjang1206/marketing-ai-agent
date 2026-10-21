@@ -94,6 +94,7 @@ describe('rising', () => {
     const rows = listRisingCandidates(db, id)
     expect(rows.map((r) => r.video_id)).toEqual(['r2', 'r1'])
     expect(rows[0]).toMatchObject({ title: 'tr2', views_per_hour: 500, source: 'rising' })
+    expect(rows[0].view_count).toBe(4000)   // 후보 스냅샷, videos 표 값(10) 아님
   })
   it('latestRisingSearch is undefined before any search', () => expect(latestRisingSearch(db)).toBeUndefined())
 })

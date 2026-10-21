@@ -14,8 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import type { ConfigResponse, DraftResponse, JobResponse, LogResponse, ProfilesResponse, VideosResponse } from '@/lib/api-types'
-import { KEYS, addVideoLink, errorMessage, fetcher, getVideos, requestDraft, startPost } from '@/lib/client/api'
+import type { ConfigResponse, DraftResponse, JobResponse, LogResponse, ProfilesResponse, RisingResponse, VideosResponse } from '@/lib/api-types'
+import { KEYS, addVideoLink, errorMessage, fetcher, getVideos, requestDraft, searchRising, startPost } from '@/lib/client/api'
 import { checkPostAllowed } from '@/lib/rules'
 import { cn } from '@/lib/utils'
 
@@ -37,15 +37,20 @@ export default function Home() {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   })
+  // 뜨기 직전: 서버에 저장된 최신 검색 한 건. 자동 갱신은 없고 버튼을 누를 때만 다시 찾는다.
+  const { data: rising } = useSWR<RisingResponse>(KEYS.rising, fetcher, { revalidateOnFocus: false })
   // swr 는 새로고침 요청도 dedupingInterval(기본 2초) 안에서는 합친다. 갱신 간격보다 짧게 줘야 간격대로 읽는다.
   const { data: log } = useSWR<LogResponse>(KEYS.log, fetcher, { refreshInterval: 2000, dedupingInterval: 1000 })
   const { data: profilesData } = useSWR<ProfilesResponse>(KEYS.profiles, fetcher, { refreshInterval: 5000 })
 
+  const [mode, setMode] = useState<'latest' | 'rising'>('latest')
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [selectedProfile, setSelectedProfile] = useState<string>('auto')
   const [jobId, setJobId] = useState<string | null>(null)
   const [fetching, setFetching] = useState(false)
   const [videosError, setVideosError] = useState<string | null>(null)
+  const [searchingRising, setSearchingRising] = useState(false)
+  const [risingError, setRisingError] = useState<string | null>(null)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
   const [draftActionError, setDraftActionError] = useState<{ videoId: string; message: string } | null>(null)
   const [starting, setStarting] = useState(false)
@@ -78,7 +83,8 @@ export default function Home() {
   // 영상을 고르지 않은 채 이어받은 작업이면 그 영상을 골라 둔다. 작업이 끝난 뒤에도 ②③ 칸이 비지 않는다.
   if (job && pickedId === null) setPickedId(job.video_id)
   const selectedId = pickedId
-  const video = videos.find((v) => v.id === selectedId) ?? null
+  // 모드를 바꿔도 선택이 유지되도록 두 목록을 합친 곳에서 찾는다.
+  const video = [...videos, ...(rising?.candidates ?? [])].find((v) => v.id === selectedId) ?? null
 
   const { data: draftData, error: draftError, isLoading: draftLoading } = useSWR<DraftResponse>(
     video ? KEYS.draft(video.id) : null,
@@ -88,7 +94,10 @@ export default function Home() {
       revalidateOnReconnect: false,
       revalidateIfStale: false,
       shouldRetryOnError: false,   // 초안 생성은 유료 호출이라 실패해도 저절로 다시 부르지 않는다
-      onSuccess: () => void mutate(KEYS.videos),
+      onSuccess: () => {
+        void mutate(KEYS.videos)
+        void mutate(KEYS.rising)
+      },
     },
   )
   const draft = draftData?.draft ?? null
@@ -108,6 +117,10 @@ export default function Home() {
       })
     : null
   const capReached = !!config && todayCount >= config.dailyMax
+  const r = config?.rising
+  const risingHint = r
+    ? `'${r.keyword}' ${r.publishedWithinHours}시간 · 조회수 ${r.minViews.toLocaleString('ko-KR')}~${r.maxViews.toLocaleString('ko-KR')} · 시간당 ${r.minViewsPerHour}+`
+    : ''
 
   async function fetchVideos() {
     setFetching(true)
@@ -118,6 +131,18 @@ export default function Home() {
       setVideosError(errorMessage(err))
     } finally {
       setFetching(false)
+    }
+  }
+
+  async function searchRisingNow() {
+    setSearchingRising(true)
+    setRisingError(null)
+    try {
+      await mutate(KEYS.rising, await searchRising(), { revalidate: false })
+    } catch (err) {
+      setRisingError(errorMessage(err))
+    } finally {
+      setSearchingRising(false)
     }
   }
 
@@ -142,6 +167,7 @@ export default function Home() {
     try {
       await mutate(KEYS.draft(id), await requestDraft(id, true), { revalidate: false })
       void mutate(KEYS.videos)
+      void mutate(KEYS.rising)
     } catch (err) {
       setDraftActionError({ videoId: id, message: errorMessage(err) })
     } finally {
@@ -185,7 +211,7 @@ export default function Home() {
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
           <section className="flex min-w-0 flex-col gap-3" aria-label="영상 불러오기">
             <StepHeader n={1} title="영상 불러오기" hint="버튼 한 번에 허용 채널 최신 영상" />
-            {videosError && <ErrorAlert message={videosError} />}
+            {mode === 'latest' ? videosError && <ErrorAlert message={videosError} /> : risingError && <ErrorAlert message={risingError} />}
             <VideoList
               videos={videos}
               selectedId={selectedId}
@@ -197,6 +223,12 @@ export default function Home() {
                 setPostError(null)
               }}
               onAddLink={addLink}
+              mode={mode}
+              onModeChange={setMode}
+              rising={rising ?? null}
+              risingLoading={searchingRising}
+              onSearchRising={() => void searchRisingNow()}
+              risingHint={risingHint}
             />
           </section>
 
@@ -216,6 +248,9 @@ export default function Home() {
           <section className="flex min-w-0 flex-col gap-3" aria-label="댓글 달기">
             <StepHeader n={3} title="댓글 달기" hint="프로필을 골라 누르면 크롬이 열립니다" />
             {postError && <ErrorAlert message={postError} />}
+            {video?.source === 'rising' && verdict && !verdict.allowed && verdict.reason === 'not_allowed_channel' && (
+              <p className="text-xs text-muted-foreground">뜨기 직전 영상은 초안까지만 만듭니다 (허용 채널 아님)</p>
+            )}
             <PostPanel
               profiles={profilesData?.profiles ?? []}
               selectedProfile={selectedProfile}

@@ -38,6 +38,7 @@ if (!verdict.allowed) {
 ### UI
 
 - Three numbered panels, each with a title and a one-line hint: ① 영상 불러오기, ② 영상 선택, ③ 댓글 달기. Post Log table below, newest first. Header badge "오늘 게시 N/10" and a settings link.
+- ① has a mode toggle: 허용 채널 최신 (default) | 뜨기 직전 (Rising Video: [뜨기 직전 찾기], status line, candidate cards with views/views-per-hour badge). Selection is looked up in both lists so it survives a mode switch. A Rising Video outside the Allowlist gets one hint line above [댓글 달기] (Draft only); `PostPanel` itself is unchanged.
 - Pre-disable [댓글 달기] with the client-side `checkPostAllowed` verdict (plus invalid Draft or busy job); show the verdict message in a Tooltip.
 - Progress stepper maps job state: `opening_profile` 프로필 여는 중, `typing` 입력 중, `posted` 게시 완료, `verified` 댓글 보기.
 - Polling intervals (issue 10): `/api/log` 2s, `/api/profiles` 5s, `/api/posts/<jobId>` 500ms while a job runs, then stop and revalidate the log.
@@ -47,9 +48,11 @@ if (!verdict.allowed) {
 ## API Surface
 
 ```
-GET  /api/config                      public config: profiles, dailyMax, allowed/test channel IDs, comment limits
+GET  /api/config                      public config: profiles, dailyMax, allowed/test channel IDs, comment limits, rising rules
 GET  /api/videos ?refresh=1           list allowed-channel videos (refresh refetches from Data API)
 POST /api/videos {url}                Direct Link: 400 invalid_url | 404 | 409 not_allowed_channel (logged as blocked) | {video}
+GET  /api/rising                      latest Rising Video search + candidates by views per hour (view_count = search-time snapshot)
+POST /api/rising                      search config `rising.keyword`, judge, store candidates (~200 quota units, once per click) | 502 upstream_error
 POST /api/videos/[id]/draft {regenerate?}   generate or return cached Draft
 POST /api/posts {videoId, profileId?} 202 {jobId} | 409 {reason: rule code | 'busy'} | 400
 GET  /api/posts/[jobId]               job progress

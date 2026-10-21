@@ -23,6 +23,6 @@ export function latestRisingSearch(db: DatabaseSync): RisingSearchRow | undefine
 }
 
 export function listRisingCandidates(db: DatabaseSync, searchId: number): RisingCandidateJoined[] {
-  return db.prepare(`SELECT c.*, v.* FROM rising_candidates c JOIN videos v ON v.id=c.video_id WHERE c.search_id=? ORDER BY c.views_per_hour DESC`)
+  return db.prepare(`SELECT v.*, c.* FROM rising_candidates c JOIN videos v ON v.id=c.video_id WHERE c.search_id=? ORDER BY c.views_per_hour DESC`)
     .all(searchId) as RisingCandidateJoined[]
 }

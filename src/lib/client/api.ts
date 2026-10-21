@@ -1,6 +1,6 @@
 // 클라이언트 전용: fetch 래퍼와 swr 키만 둔다. 서버 모듈(db, repo, playwright, 어댑터)은 가져오지 않는다.
 // 응답 타입은 `import type` 으로만 가져와 번들에 들어가지 않게 한다.
-import type { ApiError, ApiReason, DraftResponse, PostStartResponse, ProfileResponse, VideoResponse, VideosResponse } from '../api-types'
+import type { ApiError, ApiReason, DraftResponse, PostStartResponse, ProfileResponse, RisingResponse, VideoResponse, VideosResponse } from '../api-types'
 
 export class ApiRequestError extends Error {
   status: number
@@ -40,6 +40,7 @@ async function request<T>(url: string, init: { method?: 'GET' | 'POST'; body?: u
 export const KEYS = {
   config: '/api/config',
   videos: '/api/videos',
+  rising: '/api/rising',
   log: '/api/log',
   profiles: '/api/profiles',
   job: (jobId: string) => `/api/posts/${jobId}`,
@@ -49,6 +50,8 @@ export const KEYS = {
 export const fetcher = <T>(url: string): Promise<T> => request<T>(url)
 
 export const getVideos = (refresh = false) => request<VideosResponse>(refresh ? `${KEYS.videos}?refresh=1` : KEYS.videos)
+export const getRising = () => request<RisingResponse>(KEYS.rising)
+export const searchRising = () => request<RisingResponse>(KEYS.rising, { method: 'POST' })
 export const addVideoLink = (url: string) => request<VideoResponse>(KEYS.videos, { method: 'POST', body: { url } })
 export const requestDraft = (videoId: string, regenerate: boolean) =>
   request<DraftResponse>(`/api/videos/${encodeURIComponent(videoId)}/draft`, { method: 'POST', body: { regenerate } })

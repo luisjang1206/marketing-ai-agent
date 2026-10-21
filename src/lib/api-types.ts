@@ -20,11 +20,16 @@ export type ApiReason = StartFailReason
 export type ApiError = { reason: ApiReason; message: string }
 
 export type ConfigResponse = { profiles: Profile[]; dailyMax: number; allowedChannelIds: string[]; testChannelIds: string[];
-  comment: { min: number; max: number; brand: string } }
+  comment: { min: number; max: number; brand: string };
+  rising: { keyword: string; minViews: number; maxViews: number; minViewsPerHour: number; publishedWithinHours: number } }
 
 export type VideoView = VideoRow & { captionSource: CaptionSource | null; hasDraft: boolean; isTestChannel: boolean }
 export type VideosResponse = { videos: VideoView[] }
 export type VideoResponse = { video: VideoRow }
+
+// 뜨기 직전 영상 후보. view_count 는 검색 시점 스냅샷이다(rising_candidates.view_count).
+export type RisingCandidateView = VideoView & { viewsPerHour: number; hoursSincePublish: number }
+export type RisingResponse = { keyword: string; searchedAt: string | null; scanned: number; candidates: RisingCandidateView[] }
 
 export type DraftResponse = { draft: DraftRow; captionSource: CaptionSource | null }
 

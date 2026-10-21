@@ -94,7 +94,8 @@ beforeEach(() => {
 describe('GET /api/config', () => {
   it('returns the public config', async () => {
     const body = (await (await getConfig()).json()) as ConfigResponse
-    expect(body).toEqual({ profiles: profilesOf(cfg), dailyMax: 2, allowedChannelIds: [X, T], testChannelIds: [T], comment: { min: 40, max: 120, brand: '운명원' } })
+    expect(body).toEqual({ profiles: profilesOf(cfg), dailyMax: 2, allowedChannelIds: [X, T], testChannelIds: [T], comment: { min: 40, max: 120, brand: '운명원' },
+      rising: { keyword: '연애', minViews: 1000, maxViews: 5000, minViewsPerHour: 150, publishedWithinHours: 48 } })
   })
 })
 
