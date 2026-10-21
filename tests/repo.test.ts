@@ -5,6 +5,7 @@ import { upsertVideos, listVideos, getVideo } from '@/lib/repo/videos'
 import { insertDraft, latestDraft, recentChannelDraftTexts } from '@/lib/repo/drafts'
 import { insertPost, successCountToday, hasSuccessForVideo, lastSuccessProfileId, listPosts, postedVideoIds } from '@/lib/repo/posts'
 import { createJob, updateJob, getJob, activeJob } from '@/lib/repo/jobs'
+import { insertRisingSearch, latestRisingSearch, listRisingCandidates } from '@/lib/repo/rising'
 
 const video = (id: string) => ({ id, channel_id: 'UCxlc0Ky0aWoD8uI09ad44Tg', channel_title: '외롭여', title: 't' + id,
   description: '', thumbnail_url: '', published_at: '2026-10-19T00:00:00Z', view_count: 10, source: 'list' as const })
@@ -78,4 +79,21 @@ describe('jobs', () => {
     updateJob(db, 'j1', { state: 'failed', message: '시간 초과' })
     expect(activeJob(db)).toBeUndefined()
   })
+})
+
+describe('rising', () => {
+  it('stores a search with candidates and lists the latest search by views per hour', () => {
+    upsertVideos(db, [{ ...video('r1'), source: 'rising' }, { ...video('r2'), source: 'rising' }])
+    insertRisingSearch(db, { keyword: '연애', scanned: 10, found: 0 }, [])
+    const id = insertRisingSearch(db, { keyword: '연애', scanned: 100, found: 2 }, [
+      { video_id: 'r1', view_count: 1200, hours_since_publish: 6, views_per_hour: 200 },
+      { video_id: 'r2', view_count: 4000, hours_since_publish: 8, views_per_hour: 500 },
+    ])
+    const latest = latestRisingSearch(db)!
+    expect(latest.id).toBe(id); expect(latest).toMatchObject({ keyword: '연애', scanned: 100, found: 2 })
+    const rows = listRisingCandidates(db, id)
+    expect(rows.map((r) => r.video_id)).toEqual(['r2', 'r1'])
+    expect(rows[0]).toMatchObject({ title: 'tr2', views_per_hour: 500, source: 'rising' })
+  })
+  it('latestRisingSearch is undefined before any search', () => expect(latestRisingSearch(db)).toBeUndefined())
 })

@@ -23,6 +23,9 @@ describe('parseConfig', () => {
     expect(cfg.typing).toEqual({ min_delay_ms: 40, max_delay_ms: 110 })
     expect(cfg.comment.banned_phrases).toEqual([])
   })
+  it('defaults rising rules when the block is absent', () => {
+    expect(parseConfig(yaml).rising).toEqual({ keyword: '연애', min_views: 1000, max_views: 5000, min_views_per_hour: 150, published_within_hours: 48, pages: 2 })
+  })
   it('derives profiles with ids p1..pn', () => {
     expect(profilesOf(parseConfig(yaml))).toEqual([
       { id: 'p1', label: '유튜브1', index: 1 }, { id: 'p2', label: '유튜브2', index: 2 },

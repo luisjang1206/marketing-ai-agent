@@ -4,6 +4,7 @@ export type YoutubeApi = {
   listLatestVideos(channelIds: string[], perChannel: number): Promise<VideoMeta[]>
   getVideo(id: string): Promise<VideoMeta | null>
   getTopComments(id: string, max?: number): Promise<string[]>
+  searchRecentVideos(q: string, publishedAfter: string, pages: number): Promise<VideoMeta[]>
 }
 
 export class YoutubeApiError extends Error {
@@ -24,6 +25,7 @@ type VideoItem = {
   statistics?: { viewCount?: string }
 }
 type PlaylistItem = { contentDetails: { videoId: string } }
+type SearchItem = { id: { videoId?: string } }
 type CommentThread = { snippet: { topLevelComment: { snippet: { textDisplay: string } } } }
 
 const BASE = 'https://www.googleapis.com/youtube/v3'
@@ -68,6 +70,19 @@ export function createYoutubeApi(apiKey: string, fetchImpl: typeof fetch = fetch
       return videosByIds(ids)
     },
     async getVideo(id) { return (await videosByIds([id]))[0] ?? null },
+    async searchRecentVideos(q, publishedAfter, pages) {
+      const ids: string[] = []
+      let pageToken: string | undefined
+      for (let p = 0; p < pages; p++) {
+        const body = await call<{ items: SearchItem[]; nextPageToken?: string }>('search', {
+          part: 'snippet', type: 'video', order: 'date', maxResults: '50', regionCode: 'KR', relevanceLanguage: 'ko', q, publishedAfter,
+          ...(pageToken ? { pageToken } : {}) })
+        for (const it of body.items) if (it.id.videoId) ids.push(it.id.videoId)
+        pageToken = body.nextPageToken
+        if (!pageToken) break
+      }
+      return videosByIds([...new Set(ids)])
+    },
     async getTopComments(id, max = 10) {
       try {
         const body = await call<{ items: CommentThread[] }>('commentThreads', { part: 'snippet', videoId: id, order: 'relevance', maxResults: String(max), textFormat: 'plainText' })

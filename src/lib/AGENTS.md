@@ -23,6 +23,8 @@ src/lib/
   browser/rotation.ts  pickProfile()                              -- pure
   youtube/             url.ts (pure), api.ts, captions.ts         -- issues 04, 05 (planned)
   youtube/map.ts       toRow(meta, source) -- VideoMeta -> VideoRow (issue 09)
+  youtube/rising.ts    assessRising(), publishedAfterIso() -- pure (issue 15)
+  repo/rising.ts       insertRisingSearch(), latestRisingSearch(), listRisingCandidates() (issue 15)
   draft/               prompt.ts, validate.ts (pure), generate.ts -- issue 06 (planned)
   browser/             launch.ts, profiles.ts, poster.ts          -- issues 07, 08 (planned)
   jobs/runner.ts       startPostJob(), runPostJob()               -- issue 08 (planned)
@@ -35,7 +37,7 @@ src/lib/
 - `zod` 4 + `yaml` parse `config.yaml`. `@anthropic-ai/sdk` ^0.135 generates Drafts.
 - `playwright` ^1.64 drives installed Google Chrome (`channel: 'chrome'`). Never bundled Chromium, never the default Chrome profile, never CDP attach (ADR-0002).
 - YouTube Data API v3 over `fetch` with `YOUTUBE_API_KEY`. Captions via the `yt-dlp` CLI as a child process; yt-dlp is optional (ADR-0003).
-- Pure modules (no I/O): `rules.ts`, `browser/rotation.ts`, `youtube/url.ts`, `draft/validate.ts`. Client components import `rules.ts` to pre-disable the post button (issue 10), so these files import nothing from `node:*`, `db`, `repo`, or `playwright`.
+- Pure modules (no I/O): `rules.ts`, `browser/rotation.ts`, `youtube/url.ts`, `draft/validate.ts`, `youtube/rising.ts`. Client components import `rules.ts` to pre-disable the post button (issue 10), so these files import nothing from `node:*`, `db`, `repo`, or `playwright`.
 - Everything else is server-only.
 
 ## Implementation Patterns

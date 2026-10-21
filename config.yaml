@@ -22,3 +22,10 @@ fetch:
 typing:
   min_delay_ms: 40
   max_delay_ms: 110
+rising:                                   # 뜨기 직전 영상 (조회수 ÷ 업로드 후 경과 시간 = 평균 시간당 조회수)
+  keyword: 연애
+  min_views: 1000
+  max_views: 5000
+  min_views_per_hour: 150
+  published_within_hours: 48
+  pages: 2                                # search.list 페이지 수, 페이지당 100유닛

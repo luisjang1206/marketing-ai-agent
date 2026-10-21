@@ -71,7 +71,8 @@ const ctx = <T extends Record<string, string>>(params: T) => ({ params: Promise.
 
 let db: DatabaseSync
 let n: number
-const yt = { listLatestVideos: vi.fn<YoutubeApi['listLatestVideos']>(), getVideo: vi.fn<YoutubeApi['getVideo']>(), getTopComments: vi.fn<YoutubeApi['getTopComments']>() }
+const yt = { listLatestVideos: vi.fn<YoutubeApi['listLatestVideos']>(), getVideo: vi.fn<YoutubeApi['getVideo']>(), getTopComments: vi.fn<YoutubeApi['getTopComments']>(),
+  searchRecentVideos: vi.fn<YoutubeApi['searchRecentVideos']>() }
 const llm = vi.fn<DraftLLM>()
 beforeEach(() => {
   db = openDb(':memory:')

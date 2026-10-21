@@ -23,6 +23,16 @@ export const AppConfigSchema = z.object({
   typing: z
     .object({ min_delay_ms: z.number().int().min(0), max_delay_ms: z.number().int().min(0) })
     .default({ min_delay_ms: 40, max_delay_ms: 110 }),
+  rising: z
+    .object({
+      keyword: z.string().min(1),
+      min_views: z.number().int().min(0),
+      max_views: z.number().int().positive(),
+      min_views_per_hour: z.number().min(0),
+      published_within_hours: z.number().positive(),
+      pages: z.number().int().min(1).max(5),
+    })
+    .default({ keyword: '연애', min_views: 1000, max_views: 5000, min_views_per_hour: 150, published_within_hours: 48, pages: 2 }),
 })
 export type AppConfig = z.infer<typeof AppConfigSchema>
 export type Channel = AppConfig['channels'][number]

@@ -58,6 +58,29 @@ describe('createYoutubeApi', () => {
     const calls = (fetchImpl as unknown as { mock: { calls: [string][] } }).mock.calls.map((c) => String(c[0]))
     expect(calls.some((c) => c.includes('/videos?'))).toBe(false)
   })
+  it('searchRecentVideos follows nextPageToken up to pages and dedupes ids', async () => {
+    const fetchImpl = fakeFetch({
+      search: (u: URL) => u.searchParams.get('pageToken') === 'P2'
+        ? { items: [{ id: { videoId: 'v2' } }, { id: { videoId: 'v1' } }] }
+        : { items: [{ id: { videoId: 'v1' } }, { id: { kind: 'youtube#channel' } }], nextPageToken: 'P2' },
+      videos: (u: URL) => ({ items: u.searchParams.get('id')!.split(',').map((id: string) => snippet(id, 'UCx')) }),
+    })
+    const api = createYoutubeApi('KEY', fetchImpl)
+    const list = await api.searchRecentVideos('연애', '2026-10-19T12:00:00Z', 2)
+    expect(list.map((v) => v.id)).toEqual(['v1', 'v2'])
+    const calls = (fetchImpl as unknown as { mock: { calls: [URL][] } }).mock.calls.map((c) => new URL(String(c[0])))
+    const searches = calls.filter((u) => u.pathname.endsWith('/search'))
+    expect(searches).toHaveLength(2)
+    const p = searches[0].searchParams
+    expect([p.get('q'), p.get('type'), p.get('order'), p.get('maxResults'), p.get('regionCode'), p.get('relevanceLanguage'), p.get('publishedAfter')])
+      .toEqual(['연애', 'video', 'date', '50', 'KR', 'ko', '2026-10-19T12:00:00Z'])
+    expect(calls.filter((u) => u.pathname.endsWith('/videos'))).toHaveLength(1)
+  })
+  it('searchRecentVideos stops early when there is no next page', async () => {
+    const fetchImpl = fakeFetch({ search: { items: [{ id: { videoId: 'v1' } }] }, videos: () => ({ items: [snippet('v1', 'UCx')] }) })
+    await createYoutubeApi('KEY', fetchImpl).searchRecentVideos('연애', '2026-10-19T12:00:00Z', 3)
+    expect((fetchImpl as unknown as { mock: { calls: unknown[] } }).mock.calls.filter((c) => String((c as [URL])[0]).includes('/search'))).toHaveLength(1)
+  })
   it('getVideo returns null for unknown id', async () => {
     const api = createYoutubeApi('KEY', fakeFetch({ videos: { items: [] } }))
     expect(await api.getVideo('zzz')).toBeNull()

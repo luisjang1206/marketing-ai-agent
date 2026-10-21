@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 export type VideoRow = { id: string; channel_id: string; channel_title: string; title: string; description: string;
-  thumbnail_url: string; published_at: string; view_count: number; source: 'list' | 'direct'; fetched_at: string }
+  thumbnail_url: string; published_at: string; view_count: number; source: 'list' | 'direct' | 'rising'; fetched_at: string }
 export function upsertVideos(db: DatabaseSync, rows: Omit<VideoRow, 'fetched_at'>[]): void {
   const stmt = db.prepare(`INSERT INTO videos (id, channel_id, channel_title, title, description, thumbnail_url, published_at, view_count, source)
     VALUES (?,?,?,?,?,?,?,?,?)
