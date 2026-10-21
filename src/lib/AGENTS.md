@@ -21,13 +21,13 @@ src/lib/
   api-types.ts         response types shared with the UI (type-only imports)
   repo/                videos, captions, drafts, posts, jobs, profiles -- SQL only
   browser/rotation.ts  pickProfile()                              -- pure
-  youtube/             url.ts (pure), api.ts (incl. searchRecentVideos), captions.ts -- issues 04, 05, 15 (planned)
+  youtube/             url.ts (pure), api.ts (incl. searchRecentVideos), captions.ts -- issues 04, 05, 15
   youtube/map.ts       toRow(meta, source) -- VideoMeta -> VideoRow (issue 09)
   youtube/rising.ts    assessRising(), publishedAfterIso() -- pure (issue 15)
   repo/rising.ts       insertRisingSearch(), latestRisingSearch(), listRisingCandidates() (issue 15)
-  draft/               prompt.ts, validate.ts (pure), generate.ts -- issue 06 (planned)
-  browser/             launch.ts, profiles.ts, poster.ts          -- issues 07, 08 (planned)
-  jobs/runner.ts       startPostJob(), runPostJob()               -- issue 08 (planned)
+  draft/               prompt.ts, validate.ts (pure), generate.ts -- issue 06
+  browser/             launch.ts, profiles.ts, poster.ts          -- issues 07, 08
+  jobs/runner.ts       startPostJob(), runPostJob()               -- issue 08
   client/api.ts        fetch wrapper + swr keys (client only)     -- issue 10
 ```
 

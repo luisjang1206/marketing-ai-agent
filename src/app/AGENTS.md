@@ -42,7 +42,7 @@ if (!verdict.allowed) {
 - Pre-disable [댓글 달기] with the client-side `checkPostAllowed` verdict (plus invalid Draft or busy job); show the verdict message in a Tooltip.
 - Progress stepper maps job state: `opening_profile` 프로필 여는 중, `typing` 입력 중, `posted` 게시 완료, `verified` 댓글 보기.
 - Polling intervals (issue 10): `/api/log` 2s, `/api/profiles` 5s, `/api/posts/<jobId>` 500ms while a job runs, then stop and revalidate the log.
-- `/api/rising` is not polled: SWR reads the saved latest search once (`revalidateOnFocus: false`) and only the [뜨기 직전 찾기] button POSTs, because each search costs about 202 quota units. Never add auto-refresh.
+- `/api/rising` is not polled and is never searched automatically. SWR GETs the saved latest search on mount (`revalidateOnFocus: false`) and re-GETs it via `mutate(KEYS.rising)` after every Draft generate or regenerate in `page.tsx`; keep those calls, because the candidate card's "초안" badge depends on them (a GET reads the DB only, 0 quota). Only the [뜨기 직전 찾기] button POSTs, because each search costs about 202 quota units. Never add auto-refresh.
 - `layout.tsx`: `<html lang="ko">`, system font stack; do not load web fonts (offline demo stability). The scaffold's Geist fonts and `lang="en"` were replaced in issue 10; `globals.css` defines the system font stack.
 - Add primitives with the shadcn CLI, then import from `@/components/ui/<name>`. Do not hand-edit generated primitives unless a feature requires it.
 

@@ -342,7 +342,7 @@ rising_candidates (search_id REFERENCES rising_searches(id), video_id REFERENCES
 
 `RisingResponse = { keyword: string; searchedAt: string | null; scanned: number; candidates: RisingCandidateView[] }`
 `RisingCandidateView = VideoView & { viewsPerHour: number; hoursSincePublish: number }`
-`ConfigResponse.rising = { keyword, minViews, maxViews, minViewsPerHour }` (안내 문구용)
+`ConfigResponse.rising = { keyword, minViews, maxViews, minViewsPerHour, publishedWithinHours }` (안내 문구용)
 
 ### 18.6 UI (① 칸 안)
 - 모드 토글: **허용 채널 최신** | **뜨기 직전**. 기본 = 허용 채널 최신.
