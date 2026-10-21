@@ -69,12 +69,12 @@ curl -s -X POST localhost:3000/api/rising | head -c 600
 ```
 - [x] 4. `VideoList` 토글·rising 모드 → `page.tsx` 연결 → ③ 안내 줄
 - [ ] 5. 브라우저 수동 체크리스트
-  - [ ] 토글 "뜨기 직전" → [뜨기 직전 찾기] → 로딩 → 상태 줄·후보 카드(조회수·시간당 배지)
-  - [ ] 후보 클릭 → ② 고민 한 줄·근거 장면·초안 생성
-  - [ ] ③ 버튼 비활성, 툴팁 "허용 채널의 영상이 아닙니다", 안내 줄 "초안까지만"
-  - [ ] 토글 "허용 채널 최신"으로 돌아가도 선택·초안 유지
-  - [ ] 새로고침 → 마지막 검색 결과·시각 그대로
-  - [ ] 후보 0개 문구 (설정의 `min_views`를 잠깐 99999로 올려 확인 후 되돌림)
+  - [x] 토글 "뜨기 직전" → [뜨기 직전 찾기] → 로딩 → 상태 줄·후보 카드(조회수·시간당 배지)
+  - [x] 후보 클릭 → ② 고민 한 줄·근거 장면·초안 생성
+  - [x] ③ 버튼 비활성, 툴팁 "허용 채널의 영상이 아닙니다", 안내 줄 "초안까지만"
+  - [x] 토글 "허용 채널 최신"으로 돌아가도 선택·초안 유지
+  - [x] 새로고침 → 마지막 검색 결과·시각 그대로
+  - [ ] 후보 0개 문구 (설정의 `min_views`를 잠깐 99999로 올려 확인 후 되돌림) — 코드로만 확인, 실화면 미확인(아래 Comments)
 - [x] 6. `pnpm build`, `pnpm lint` 통과 → 커밋 `feat: find rising videos from the dashboard`
 
 ## 완료 기준
@@ -83,3 +83,5 @@ curl -s -X POST localhost:3000/api/rising | head -c 600
 ## Comments
 
 단계 1~4, 6 완료. 단계 5(브라우저 수동 체크리스트)는 브라우저가 없어 하지 않았고 메인 세션에 남긴다(위 체크박스는 그대로 비워 둠). 단계 1: `tests/repo.test.ts`에 `expect(rows[0].view_count).toBe(4000)` 한 줄을 먼저 넣어 FAIL(10) 확인 뒤 `SELECT v.*, c.*`로 바꿔 PASS. 단계 3 curl(실키, 실행 중인 `next dev` 3000번): GET(검색 전) `{"keyword":"연애","searchedAt":null,"scanned":0,"candidates":[]}` → POST 1회(HTTP 200, 약 202유닛) 훑은 영상 100개 · 후보 20개, 상위 후보 `view_count` 3115 · `viewsPerHour` 2999.5 · `hoursSincePublish` 1.04 · `source: rising` → GET 재호출은 같은 `searchedAt`(2026-10-21 16:25:42)·scanned 100·후보 20개. `/api/config`에 `rising` 5개 필드 확인. `pnpm test` 174 passed · 1 skipped, `pnpm exec tsc --noEmit`·`pnpm lint` 무오류. 이슈와 다르게 한 것. (1) `tests/api-routes.test.ts`의 `GET /api/config` 단언은 응답 전체를 `toEqual`로 비교해서, `ConfigResponse.rising`을 더하면 깨진다. 기대값에 `rising` 한 줄을 추가했다(이슈 파일 목록에 없던 파일, 15에서 같은 파일을 고친 것과 같은 사정). (2) 이슈에 없지만 `page.tsx`의 초안 생성·다시 생성 성공 때 `mutate(KEYS.rising)`을 `mutate(KEYS.videos)` 옆에 더했다. 뜨기 직전 카드도 같은 마크업이라 "초안" 배지가 있는데, 이게 없으면 초안을 만든 뒤에도 후보 카드의 배지가 갱신되지 않는다(조회수 API 호출 없음, DB 읽기만). (3) `risingLoading`은 검색 요청이 진행 중일 때만 true로 넘기고(저장된 결과를 읽는 첫 GET은 포함 안 함), `rising`이 아직 null이면 상태 줄을 비운다. 그래서 새로고침 직후 "아직 검색하지 않았습니다"가 잠깐 깜빡이지 않는다. 후보 0개 문구("조건에 맞는 영상이 없습니다…")는 검색 기록이 있을 때(`searchedAt` 있음)만 보이고, 한 번도 검색하지 않았을 땐 상태 줄 "아직 검색하지 않았습니다"만 보인다. (4) 상태 줄의 `searchedAt`은 DB가 `YYYY-MM-DD HH:mm:ss`(로컬 시각)로 주므로 `' '`를 `'T'`로 바꿔 `relativeTime`에 넘긴다(공백 형식은 Safari에서 NaN일 수 있음). (5) 오류 알림은 모드별로 하나만 보인다(최신 = `videosError`, 뜨기 직전 = `risingError`). `pnpm build`는 이 작업트리에서 `data/profiles/1/RunningChromeVersion`(크롬 종료 때 남은 끊어진 심볼릭 링크로 보임; 지금 그 프로필을 쓰는 크롬 프로세스는 없음) 때문에 Turbopack이 `src/lib/draft/anthropic.ts`의 `process.cwd()` 추적 중 `could not be resolved` 오류로 실패한다. `data/`는 건드리지 않는 규칙이라 손대지 않고, `data/`를 뺀 저장소 복사본(scratchpad)에서 `pnpm build`를 돌려 통과(라우트 목록에 `/api/rising` 포함)를 확인한 뒤 복사본을 지웠다. 이 오류는 이번 변경과 무관하게 해당 링크가 남아 있는 동안 어느 커밋에서나 난다. 열린 질문. (a) 뜨기 직전 모드에서 직접 입력으로 영상을 추가하면 그 영상이 골라지지만(②③ 표시) 뜨기 직전 목록에는 카드가 없다(허용 채널 영상이라 "허용 채널 최신" 목록에 있음). 추가 성공 시 최신 모드로 자동 전환할지는 이슈에 없어 그대로 두었다. (b) 위 끊어진 심볼릭 링크 때문에 `pnpm build`가 막히므로, 사용자가 개발 서버·크롬을 끈 뒤 정리할지 결정이 필요하다.
+
+메인 세션 단계 5 확인(2026-10-21, 실행 중인 `next dev`, 브라우저 1280×800): 가로 스크롤 없음(`scrollWidth` 1280 = `clientWidth`). 토글 "뜨기 직전" → `aria-pressed` 전환, 저장된 결과 "마지막 검색 6분 전 · 훑은 영상 100개 · 후보 20개" 표시. [뜨기 직전 찾기] 1회(약 200유닛): 누르는 동안 버튼 비활성·스피너·"찾는 중…", 끝나면 "마지막 검색 방금 전 · 훑은 영상 93개 · 후보 19개", 카드 배지 "조회수 3,464 · 시간당 +3002" 형식, 시간당 내림차순. 상위 후보 클릭 → ② 고민 한 줄·근거 장면·초안(109/120, 검증 통과) 자동 생성. ③ "댓글 달기" `disabled`, 툴팁 "허용 채널의 영상이 아닙니다", PostPanel 위 안내 줄 "뜨기 직전 영상은 초안까지만 만듭니다 (허용 채널 아님)". "허용 채널 최신"으로 돌아가도 ② 선택·초안·③ 안내 유지, [불러오기]·채널 칩 복귀. 새로고침 뒤 같은 상태 줄·후보 19개. 후보 0개 문구는 `config.yaml` 임시 수정이 권한 분류기에 거부되어 실화면 확인을 못 했고, `VideoList.tsx` 232~235행(`searchedAt` 있고 후보 0개일 때만 문구)으로 코드만 확인했다. 첫 페이지 로드에서 한 번 하이드레이션이 늦어(개발 서버 컴파일 중) 클릭이 안 먹었으나 새로고침 뒤 정상 — 앱 문제 아님. `issue-reviewer` APPROVE(🟡 2개: api-routes 테스트 파일 추가 수용, 체크리스트 전 Status 변경). 리뷰 제안(비차단): 직접 입력 성공 시 `setMode('latest')`로 전환 — 열린 질문 (a)의 답, 후속으로 남긴다. `pnpm build`는 `data/` 없는 worktree에서 통과, 이 작업트리에서는 끊어진 `RunningChromeVersion` 링크 때문에 실패(이번 변경과 무관, 후속).
