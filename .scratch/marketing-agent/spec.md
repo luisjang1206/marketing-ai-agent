@@ -13,7 +13,7 @@
 | 운영 규칙 | 15 | §9 운영 규칙 (허용 범위·영상당 1개·하루 상한, 차단 기록, 단위 테스트) |
 | 사용성 | 10 | §11 UI (번호 붙은 세 칸, 칸마다 한 줄 안내, 상태 배지) |
 | 제작 의도 | 5 | §13 README 제작 의도 + ADR |
-| 가점 | — | 프로필 1~3 배정/자동 배정, 직접 입력, 즉석 초안. 뜨기 직전 영상은 미룸 |
+| 가점 | — | 프로필 1~3 배정/자동 배정, 직접 입력, 즉석 초안, 뜨기 직전 영상 찾기(§18) |
 
 ## 2. 범위
 
@@ -29,8 +29,8 @@
 - 직접 입력(링크) → 채널 검증 → 목록에 추가.
 - 즉석 초안은 ②의 설계로 자동 충족.
 
-**미룸**
-- 뜨기 직전 영상 찾기. 필수+가점 완료 후 시간이 남으면 별도 라운드에서 설계.
+**가점 (3차, 2026-10-21 설계)**
+- 뜨기 직전 영상 찾기 → §18. 이슈 15~17.
 
 **하지 않는 것**
 - 웹 배포, 다중 사용자, 댓글 고유 링크(`?lc=`) 추적, 후보 초안 여러 개 비교 UI, 별도 워커 프로세스.
@@ -292,5 +292,63 @@ UI는 같은 함수 결과로 버튼을 미리 비활성화하고 툴팁에 메�
 | 10 | 대시보드 UI + 설정 페이지 | 09 |
 | 11 | README · 제작 의도 · 시연 시나리오 | 10 |
 | 12 | 시연 리허설 · 제출 체크 (사람) | 11 |
+| 13 | 같은 채널 초안 겹침 막기 | 06 |
+| 14 | 짜임 힌트 문구 · 길이 안정화 | 13 |
+| 15 | 뜨기 직전: 설정 · 스키마 · 판정 · 검색 어댑터 · 리포 | 11 |
+| 16 | 뜨기 직전: 라우트 · ① 토글 UI | 15 |
+| 17 | 뜨기 직전: README · AGENTS.md · 시연 컷 | 16 |
 
 03~07은 02 뒤에 서로 독립. 07은 사람 로그인이 필요하므로 일찍 시작해 둔다.
+
+## 18. 뜨기 직전 영상 (Rising Video) — 2026-10-21 추가
+
+근거: ADR-0005. 용어: CONTEXT.md "뜨기 직전 영상", "시간당 조회수".
+
+### 18.1 판정 (순수 함수 `youtube/rising.ts`)
+- `hoursSincePublish = max((now − publishedAt) / 1h, 1/60)` — 1분 미만은 1분으로 본다(0 나눗셈 방지).
+- `viewsPerHour = viewCount / hoursSincePublish`.
+- `rising = minViews ≤ viewCount ≤ maxViews ∧ viewsPerHour ≥ minViewsPerHour` (경계 포함).
+- `publishedAfterIso(now, withinHours)` → RFC3339, 밀리초 없이.
+
+### 18.2 검색 (`youtube/api.ts` `searchRecentVideos`)
+`search.list` part=snippet, type=video, order=date, maxResults=50, regionCode=KR, relevanceLanguage=ko, q=`rising.keyword`, publishedAfter → `nextPageToken`으로 `rising.pages`까지 → 영상 ID 중복 제거 → `videos.list`로 메타(조회수 포함). 반환 `VideoMeta[]`(훑은 영상 전부). 판정은 호출자가 한다.
+
+### 18.3 설정 (`config.yaml`, zod default로 기존 설정 호환)
+```yaml
+rising:
+  keyword: 연애
+  min_views: 1000
+  max_views: 5000
+  min_views_per_hour: 150
+  published_within_hours: 48
+  pages: 2            # search.list 페이지 수, 페이지당 100유닛
+```
+
+### 18.4 데이터 모델
+```sql
+videos.source CHECK (source IN ('list','direct','rising'))   -- 'rising' 추가. 구 DB는 reset 필요
+rising_searches   (id INTEGER PK, keyword, scanned INTEGER, found INTEGER, searched_at DEFAULT localtime)
+rising_candidates (search_id REFERENCES rising_searches(id), video_id REFERENCES videos(id),
+                   view_count INTEGER, hours_since_publish REAL, views_per_hour REAL, PRIMARY KEY (search_id, video_id))
+```
+- 화면은 최신 `rising_searches` 한 건의 후보만 보여준다(교체 의미). 이전 검색은 DB에 남는다.
+- `openDb`는 `sqlite_master`의 videos 생성문에 `'rising'`이 없으면 한국어 오류를 던진다: "data/agent.db 스키마가 바뀌었습니다. 개발 서버를 끄고 pnpm reset:data 를 실행한 뒤 다시 시작하세요".
+
+### 18.5 API
+| 메서드·경로 | 동작 | 응답 |
+|---|---|---|
+| GET `/api/rising` | 최신 검색 + 후보(영상 JOIN, 시간당 조회수 내림차순) | `RisingResponse` |
+| POST `/api/rising` | 검색 실행 → 판정 → `upsertVideos(rising만, 'rising')` → `insertRisingSearch` | `RisingResponse` / 502 `upstream_error` |
+
+`RisingResponse = { keyword: string; searchedAt: string | null; scanned: number; candidates: RisingCandidateView[] }`
+`RisingCandidateView = VideoView & { viewsPerHour: number; hoursSincePublish: number }`
+`ConfigResponse.rising = { keyword, minViews, maxViews, minViewsPerHour }` (안내 문구용)
+
+### 18.6 UI (① 칸 안)
+- 모드 토글: **허용 채널 최신** | **뜨기 직전**. 기본 = 허용 채널 최신.
+- 뜨기 직전 모드: 버튼 [뜨기 직전 찾기], 안내 "'연애' 48시간 · 조회수 1,000~5,000 · 시간당 150+", 상태 "마지막 검색 N분 전 · 훑은 영상 M개 · 후보 K개". 카드는 같은 모양 + 배지 "조회수 3,210 · 시간당 +210". 채널 칩 없음. 직접 입력 폼은 그대로.
+- 후보 선택 → ② 기존 초안 파이프라인. ③은 허용 범위 verdict가 막고, 안내 한 줄 "뜨기 직전 영상은 초안까지만 만듭니다 (허용 채널 아님)". 허용 채널 영상이면 기존대로 게시 가능.
+- 자동 갱신 없음. 버튼은 로딩 중 비활성.
+
+### 18.7 테스트
+`tests/rising.test.ts`(판정 경계·publishedAfter 형식), `tests/youtube-api.test.ts`(검색 페이지네이션·파라미터), `tests/repo.test.ts`(rising 리포), `tests/config.test.ts`(default), `tests/db.test.ts`(구 스키마 감지). 라우트·UI는 수동.
