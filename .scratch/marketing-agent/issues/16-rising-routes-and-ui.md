@@ -11,7 +11,8 @@ spec §18.5~18.6. `GET/POST /api/rising`, ① 칸 모드 토글, 뜨기 직전 �
 
 ## 파일
 - Create: `src/app/api/rising/route.ts`
-- Modify: `src/lib/api-types.ts`, `src/app/api/config/route.ts`, `src/lib/client/api.ts`, `src/components/VideoList.tsx`, `src/app/page.tsx`
+- Modify: `src/lib/repo/rising.ts`(SELECT 열 순서만), `src/lib/api-types.ts`, `src/app/api/config/route.ts`, `src/lib/client/api.ts`, `src/components/VideoList.tsx`, `src/app/page.tsx`
+- Test: `tests/repo.test.ts`(단언 한 줄 추가)
 - 문서: `src/app/AGENTS.md` API Surface·UI 절에 한 줄씩
 
 ## 인터페이스
@@ -40,6 +41,7 @@ risingHint: string          // "'연애' 48시간 · 조회수 1,000~5,000 · �
 - GET: `latestRisingSearch(db)` 없으면 `{ keyword: cfg.rising.keyword, searchedAt: null, scanned: 0, candidates: [] }`. 있으면 `listRisingCandidates(db, s.id)` → 각 행을 `VideoView` 꼴(`captionSource`, `hasDraft`, `isTestChannel`)로 만들고 `viewsPerHour`, `hoursSincePublish` 붙임.
 - POST: `now = new Date()` → `youtube.searchRecentVideos(cfg.rising.keyword, publishedAfterIso(now, cfg.rising.published_within_hours), cfg.rising.pages)` → 각 메타 `assessRising(meta, now, { minViews: cfg.rising.min_views, maxViews: cfg.rising.max_views, minViewsPerHour: cfg.rising.min_views_per_hour })` → rising인 것만 `upsertVideos(db, metas.map(m => toRow(m, 'rising')))` → `insertRisingSearch(db, { keyword, scanned: metas.length, found: rising.length }, candidates)` → GET과 같은 응답. 실패 502 `{ reason: 'upstream_error', message: '뜨기 직전 영상을 찾지 못했습니다: …' }`.
 - 둘 다 `runtime='nodejs'`, `dynamic='force-dynamic'`.
+- 응답의 `view_count`는 검색 시점 스냅샷(`rising_candidates.view_count`)이다. 같은 영상이 나중에 목록·직접 입력으로 다시 upsert돼도 배지의 조회수와 시간당 값은 같은 시점 숫자여야 한다 → 단계 1.
 - `upsertVideos`는 `ON CONFLICT`에서 `source`를 안 바꾸므로, 이미 목록/직접 입력으로 저장된 영상은 원래 source를 유지한다(의도).
 
 ## UI 동작
@@ -53,21 +55,27 @@ risingHint: string          // "'연애' 48시간 · 조회수 1,000~5,000 · �
 - `/api/config`: `rising` 필드 추가. `risingHint`는 page.tsx가 config에서 조립: `` `'${r.keyword}' ${r.publishedWithinHours}시간 · 조회수 ${r.minViews.toLocaleString('ko-KR')}~${r.maxViews.toLocaleString('ko-KR')} · 시간당 ${r.minViewsPerHour}+` ``.
 
 ## 단계
-- [ ] 1. `api-types.ts`, `/api/config`, `client/api.ts` 추가 → `pnpm exec tsc --noEmit`
-- [ ] 2. `src/app/api/rising/route.ts` 구현 → curl 확인 (`pnpm dev`, 실키·200유닛 소비 1회):
+- [ ] 1. `listRisingCandidates`가 후보 스냅샷 `view_count`를 돌려주게 한다. 이슈 15의 `SELECT c.*, v.*`는 같은 이름 열을 뒤쪽 `v.view_count`(videos 현재값)가 덮는다.
+  - `tests/repo.test.ts` `describe('rising')` 첫 테스트 끝에 추가 → `pnpm test tests/repo.test.ts` FAIL 확인(지금 10이 나옴):
+```ts
+expect(rows[0].view_count).toBe(4000)   // 후보 스냅샷, videos 표 값(10) 아님
+```
+  - `src/lib/repo/rising.ts`: `SELECT c.*, v.*` → `SELECT v.*, c.*` (열 순서만. 타입·시그니처·ORDER BY 불변) → PASS 확인.
+- [ ] 2. `api-types.ts`, `/api/config`, `client/api.ts` 추가 → `pnpm exec tsc --noEmit`
+- [ ] 3. `src/app/api/rising/route.ts` 구현 → curl 확인 (`pnpm dev`, 실키·200유닛 소비 1회):
 ```bash
 curl -s localhost:3000/api/rising
 curl -s -X POST localhost:3000/api/rising | head -c 600
 ```
-- [ ] 3. `VideoList` 토글·rising 모드 → `page.tsx` 연결 → ③ 안내 줄
-- [ ] 4. 브라우저 수동 체크리스트
+- [ ] 4. `VideoList` 토글·rising 모드 → `page.tsx` 연결 → ③ 안내 줄
+- [ ] 5. 브라우저 수동 체크리스트
   - [ ] 토글 "뜨기 직전" → [뜨기 직전 찾기] → 로딩 → 상태 줄·후보 카드(조회수·시간당 배지)
   - [ ] 후보 클릭 → ② 고민 한 줄·근거 장면·초안 생성
   - [ ] ③ 버튼 비활성, 툴팁 "허용 채널의 영상이 아닙니다", 안내 줄 "초안까지만"
   - [ ] 토글 "허용 채널 최신"으로 돌아가도 선택·초안 유지
   - [ ] 새로고침 → 마지막 검색 결과·시각 그대로
   - [ ] 후보 0개 문구 (설정의 `min_views`를 잠깐 99999로 올려 확인 후 되돌림)
-- [ ] 5. `pnpm build`, `pnpm lint` 통과 → 커밋 `feat: find rising videos from the dashboard`
+- [ ] 6. `pnpm build`, `pnpm lint` 통과 → 커밋 `feat: find rising videos from the dashboard`
 
 ## 완료 기준
 체크리스트 통과. ② ③ 기존 동작 회귀 없음(허용 채널 영상 게시 흐름 그대로). 1280×800에서 가로 스크롤 없음.
