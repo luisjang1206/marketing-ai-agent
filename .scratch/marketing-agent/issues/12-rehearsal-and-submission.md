@@ -13,7 +13,7 @@ Model: —
 - [x] 비밀값 스캔: `git log -p --all | grep -iE 'sk-ant-|AIza[0-9A-Za-z_-]{30,}'` → 없음. `.env.local` 미추적(`git ls-files | grep env` → `.env.example`만)
 - [x] `pnpm test` 녹색, `pnpm build` 성공(프로덕션 빌드에서도 Playwright 외부화 확인)
 - [x] `config.yaml`의 테스트 채널 ID가 실제 값(자리표시자 `UC_REPLACE_WITH_TEST_CHANNEL` 없음)
-- [ ] (추가 완료, 실행은 사용자 — Comments 참조) `data/` 초기화 스크립트 `pnpm reset:data` (`rm -rf data/agent.db data/screenshots data/captions`) 추가·실행
+- [x] (2026-10-21 사용자 실행 — Comments 참조) `data/` 초기화 스크립트 `pnpm reset:data` (`rm -rf data/agent.db data/screenshots data/captions`) 추가·실행
 - [x] 3개 프로필 `checkLogin` 전부 true
 - [x] README 캡처 이미지 최신
 
@@ -34,3 +34,5 @@ PDF "제출 전 체크리스트" 3항목 전부 ✓.
 남은 일(사람): 개발 서버를 끈 상태에서 `pnpm reset:data` 실행(녹화 직전마다), 녹화, 공유 링크 확인, 제출 폼. Status는 사람 할 일이 남아 `ready-for-human` 그대로 둔다.
 
 리뷰 반영 (2026-10-21, `/code-review` Standards·Spec): ① README 설정 절의 "게시는 테스트 채널 영상에만 되므로"는 틀린 말이라 고쳤다. `checkPostAllowed`의 허용 범위는 허용 채널 6개 전부이고, 테스트 채널에만 게시하는 것은 규칙(Immutable Constraint 1)이지 코드가 아니다(`try:post`만 코드로 막는다). ② 프로필 실제 핸들을 지우고 `@핸들`로 적었다. ③ `AGENTS.md`의 제출 전 비밀값 스캔 명령을 이 이슈에서 실제로 돌린 정규식으로 맞췄다. 열린 질문: `AGENTS.md` Immutable Constraint 4의 "Start demo recordings from an empty `data/`"는 실제로는 `data/profiles/`를 남기는 것이다(이슈 11 `docs/demo.md`부터 그랬고 `reset:data`가 그것을 굳힌다). 사용자 소유 규칙이라 문구는 바꾸지 않았다.
+
+전체 실행·리셋 (2026-10-21 12:1x, 메인 세션): 내장 브라우저에서 `docs/demo.md` 순서대로 한 번 돌렸다. 불러오기(30개, 테스트 4) → 테스트 영상 `327388 medium` 초안·[다시 생성] → 사용자 승인 후 유튜브2로 실제 게시(성공, 하이라이트 캡처, "오늘 게시 1/10") → 같은 영상 버튼 꺼짐 → 허용 밖 링크 차단 행. 서버 에러 없음(콘솔 409는 차단된 직접 입력 응답). 발견: 테스트 영상 제목이 숫자뿐이고 자막·설명이 없어 초안이 제목을 농담 소재로 쓴다. 녹화 전 영상 제목·설명을 연애 고민 내용으로 바꾸기를 권했다. 그 뒤 사용자가 `pnpm reset:data`를 실행했고(개발 서버가 켜진 상태여서 바로 껐다), `data/`에는 `profiles/1~3`만 남았다. 게시한 댓글은 유튜브에 남아 있으므로 녹화 전에 지우거나 다른 테스트 영상을 쓴다.
