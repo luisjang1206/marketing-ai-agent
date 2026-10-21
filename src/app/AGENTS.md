@@ -5,7 +5,7 @@
 Next.js App Router layer: the single-page Korean dashboard, the `/settings` profile login page, and thin Route Handlers under `src/app/api/`. Feature components live in `src/components/`, shadcn primitives in `src/components/ui/`; both follow this file.
 
 - Downstream: every Route Handler calls into `src/lib/` (see [src/lib/AGENTS.md](../lib/AGENTS.md)). UI reads state only through these handlers.
-- Current state: all Route Handlers under `src/app/api/` are in place (issue 09; the screenshot route and the UI are issue 10). The dashboard (`page.tsx`, `src/components/{StepHeader,VideoList,DraftPanel,PostPanel,PostLog,ProfileCard}.tsx`) and `/settings` exist; `src/lib/client/api.ts` holds the fetch wrapper and swr keys. Issue 10's browser checklist is still partly pending (see the issue file).
+- Current state: all Route Handlers under `src/app/api/` are in place (issue 09; the screenshot route and the UI are issue 10). The dashboard (`page.tsx`, `src/components/{StepHeader,VideoList,DraftPanel,PostPanel,PostLog,ProfileCard}.tsx`) and `/settings` exist; `src/lib/client/api.ts` holds the fetch wrapper and swr keys. Issue 10's browser checklist is still partly pending (see the issue file). Issue 16 added `/api/rising` and the ① mode toggle for Rising Video.
 
 ## Tech Stack & Constraints
 
@@ -42,6 +42,7 @@ if (!verdict.allowed) {
 - Pre-disable [댓글 달기] with the client-side `checkPostAllowed` verdict (plus invalid Draft or busy job); show the verdict message in a Tooltip.
 - Progress stepper maps job state: `opening_profile` 프로필 여는 중, `typing` 입력 중, `posted` 게시 완료, `verified` 댓글 보기.
 - Polling intervals (issue 10): `/api/log` 2s, `/api/profiles` 5s, `/api/posts/<jobId>` 500ms while a job runs, then stop and revalidate the log.
+- `/api/rising` is not polled: SWR reads the saved latest search once (`revalidateOnFocus: false`) and only the [뜨기 직전 찾기] button POSTs, because each search costs about 202 quota units. Never add auto-refresh.
 - `layout.tsx`: `<html lang="ko">`, system font stack; do not load web fonts (offline demo stability). The scaffold's Geist fonts and `lang="en"` were replaced in issue 10; `globals.css` defines the system font stack.
 - Add primitives with the shadcn CLI, then import from `@/components/ui/<name>`. Do not hand-edit generated primitives unless a feature requires it.
 
@@ -52,7 +53,7 @@ GET  /api/config                      public config: profiles, dailyMax, allowed
 GET  /api/videos ?refresh=1           list allowed-channel videos (refresh refetches from Data API)
 POST /api/videos {url}                Direct Link: 400 invalid_url | 404 | 409 not_allowed_channel (logged as blocked) | {video}
 GET  /api/rising                      latest Rising Video search + candidates by views per hour (view_count = search-time snapshot)
-POST /api/rising                      search config `rising.keyword`, judge, store candidates (~200 quota units, once per click) | 502 upstream_error
+POST /api/rising                      search config `rising.keyword`, judge, store candidates (~202 quota units, once per click) -> same response as GET | 502 upstream_error
 POST /api/videos/[id]/draft {regenerate?}   generate or return cached Draft
 POST /api/posts {videoId, profileId?} 202 {jobId} | 409 {reason: rule code | 'busy'} | 400
 GET  /api/posts/[jobId]               job progress

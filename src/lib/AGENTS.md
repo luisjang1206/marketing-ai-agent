@@ -6,7 +6,7 @@ Server-side core of the dashboard. Owns every Operating Rule, the SQLite data la
 
 - Upstream callers: Route Handlers in `src/app/api/**` (issue 09), standalone scripts in `scripts/` (issues 07-08), client components (pure modules only).
 - Downstream: `config.yaml`, `data/agent.db`, `data/{screenshots,captions,profiles}/`, YouTube, Anthropic API, installed Google Chrome.
-- Spec: `.scratch/marketing-agent/spec.md` sections 3-10. Decisions: `docs/adr/0001`-`0004`.
+- Spec: `.scratch/marketing-agent/spec.md` sections 3-10 and 18 (Rising Video). Decisions: `docs/adr/0001`-`0005`.
 
 ### Layout
 
@@ -21,7 +21,7 @@ src/lib/
   api-types.ts         response types shared with the UI (type-only imports)
   repo/                videos, captions, drafts, posts, jobs, profiles -- SQL only
   browser/rotation.ts  pickProfile()                              -- pure
-  youtube/             url.ts (pure), api.ts, captions.ts         -- issues 04, 05 (planned)
+  youtube/             url.ts (pure), api.ts (incl. searchRecentVideos), captions.ts -- issues 04, 05, 15 (planned)
   youtube/map.ts       toRow(meta, source) -- VideoMeta -> VideoRow (issue 09)
   youtube/rising.ts    assessRising(), publishedAfterIso() -- pure (issue 15)
   repo/rising.ts       insertRisingSearch(), latestRisingSearch(), listRisingCandidates() (issue 15)
@@ -76,6 +76,7 @@ export function successCountToday(db: DatabaseSync, today: string): number { /* 
 ```
 
 - Schema lives only in `db.ts` (`CREATE TABLE IF NOT EXISTS`). Status and state columns are CHECK-constrained; change the CHECK list and the TS union together.
+- `CREATE TABLE IF NOT EXISTS` cannot alter an existing table. When a CHECK list grows (issue 15 added `'rising'` to `videos.source`), `openDb` inspects `sqlite_master`, closes the handle, and throws a Korean error telling the user to stop the dev server and run `pnpm reset:data`. A later CHECK change on an existing table needs the same detection.
 - `getDb()` caches on `globalThis.__agentDb` so dev HMR reuses one connection. Tests call `openDb(':memory:')`.
 
 ### Adapters (External I/O)
@@ -86,7 +87,15 @@ export function successCountToday(db: DatabaseSync, today: string): number { /* 
   - LLM client for `generateDraft` (issue 06), `post` function for the job runner (issue 08)
 - Defined fallbacks do not throw: missing yt-dlp (`ENOENT`) or no subtitles -> `{ text: '', source: 'none' }`; YouTube 404 on an empty upload playlist -> skip that channel.
 - Paths come from `paths.ts`. Never hardcode `data/...`.
-- Limits come from `loadConfig()`. Never hardcode 40/120 chars, 10 per day, channel IDs, or typing delays.
+- Limits come from `loadConfig()`. Never hardcode 40/120 chars, 10 per day, channel IDs, typing delays, or the Rising Video keyword, view range, views-per-hour floor, search window, and page count (`cfg.rising`).
+
+### Rising Video (issues 15-16)
+
+- `assessRising(video, now, rules)` is the only judge. `viewsPerHour = viewCount / max(hoursSincePublish, 1/60)`: an average over one snapshot, not a two-point delta (ADR-0005, CONTEXT.md "시간당 조회수"). `rising` is `minViews <= viewCount <= maxViews && viewsPerHour >= minViewsPerHour`, bounds inclusive. Rules come from `cfg.rising`; defaults live in the zod schema, so an old `config.yaml` without the block still loads.
+- `searchRecentVideos(q, publishedAfter, pages)` calls `search.list` (100 units per page, `order=date`, `regionCode=KR`), then `videos.list` in batches of 50, and returns every scanned video. Judging is the caller's job. One click is about 202 units at `pages: 2`; never poll or auto-refresh it.
+- `POST /api/rising` stores only the candidates: `upsertVideos` with `toRow(meta, 'rising')` (an existing row keeps its original `source`, because the upsert never updates it), then `insertRisingSearch`. The screen shows the latest `rising_searches` row only; older searches stay in the DB.
+- `listRisingCandidates` selects `v.*, c.*` so `view_count` is the search-time snapshot from `rising_candidates`, not the video's later value. Keep that column order.
+- A Rising Video gets no special posting rule. `checkPostAllowed` decides: outside the Allowlist it is Draft only; on an allowed channel it posts like any Video.
 
 ### Drafts (issue 06, owner: prompt-tuner)
 
@@ -115,6 +124,7 @@ export function successCountToday(db: DatabaseSync, today: string): number { /* 
 - Pure modules: one rule per `it`; assert first-violation ordering.
 - Adapters: inject fakes for `fetch`, exec, LLM client, and `post`. Never hit the network in `pnpm test`.
 - Real-key checks: guard with `it.skipIf(!process.env.YOUTUBE_API_KEY)`. Never fake a pass when the key is absent.
+- Rising Video: `tests/rising.test.ts` (boundaries incl. exactly 150/h and 1,000/5,000 views, `publishedAfterIso` format), `tests/youtube-api.test.ts` (pagination, dedupe), `tests/repo.test.ts` (candidate order, latest search), `tests/config.test.ts` (default block), `tests/db.test.ts` (old-schema detection). The route and the ① toggle are checked by hand.
 - Playwright paths: manual only, via `pnpm try:login` / `pnpm try:post` on the Test Channel.
 
 ```bash
@@ -124,7 +134,7 @@ pnpm test tests/repo.test.ts    # one file
 
 ## Local Golden Rules
 
-- Keep the four pure modules free of I/O and server-only imports.
+- Keep the five pure modules (`rules.ts`, `browser/rotation.ts`, `youtube/url.ts`, `draft/validate.ts`, `youtube/rising.ts`) free of I/O and server-only imports.
 - Follow issue interfaces verbatim (names, signatures, file paths); later issues depend on them.
 - Post only to Test Channel videos during development: run `try-post` only when the video's channel ID equals the `test: true` channel in `config.yaml`. A posted video is consumed by One Per Video; ask the user for a new test video ID.
 - Never enter passwords or 2FA codes and never solve CAPTCHAs. Open the login window and hand off to the user.

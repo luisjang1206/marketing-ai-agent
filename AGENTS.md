@@ -31,10 +31,10 @@ Local Next.js dashboard that drafts context-aware YouTube comments and posts the
 ### Repository Layout
 
 ```
-config.yaml                 operating config: profiles, allowed channels, comment rules, limits
+config.yaml                 operating config: profiles, allowed channels, comment rules, limits, rising search rules
 .env.example                env template; real keys go in .env.local (gitignored)
 CONTEXT.md                  domain glossary, Korean terms -> English identifiers (canonical)
-docs/adr/                   architecture decisions 0001-0004
+docs/adr/                   architecture decisions 0001-0005
 docs/agents/                issue-tracker, triage-label, and domain-doc conventions for skills
 .scratch/marketing-agent/   spec.md + issues/NN-<slug>.md (local issue tracker)
 .claude/agents/             project subagents: issue-implementer, issue-reviewer, browser-engineer, prompt-tuner
@@ -139,7 +139,7 @@ These guidelines complement, never override, the Immutable Constraints below. Th
 - Do not push from a subagent. The main session pushes after `issue-reviewer` approves.
 - Do not create files or refactor outside the current issue's scope; propose it under the issue's `## Comments`.
 - Do not change an interface an issue specifies (names, signatures, file paths); later issues depend on it.
-- Do not build out-of-scope items: web deploy, multi-user, `?lc=` comment links, multi-draft comparison UI, a separate worker process, Rising Video (deferred).
+- Do not build out-of-scope items: web deploy, multi-user, `?lc=` comment links, multi-draft comparison UI, a separate worker process.
 - Do not use npm, yarn, or bun.
 - Do not read `.env.local` or echo key values.
 - Do not fake-pass a real-key verification step; skip it and note the skip in the issue.
@@ -176,12 +176,12 @@ When rules in any AGENTS.md diverge from actual code behavior, update the AGENTS
 
 `.env.local` (gitignored; template `.env.example`):
 
-- `YOUTUBE_API_KEY` -- YouTube Data API v3 key for video lists, Direct Link channel checks, view counts, and top comments. Free quota 10,000 units/day; one full list fetch costs about 12.
+- `YOUTUBE_API_KEY` -- YouTube Data API v3 key for video lists, Direct Link channel checks, view counts, top comments, and Rising Video search. Free quota 10,000 units/day; one full list fetch costs about 12; one Rising Video search costs about 202 (2 `search.list` pages x 100 + `videos.list`), with no auto-refresh.
 - `ANTHROPIC_API_KEY` -- Anthropic Messages API key for Draft generation.
 - `ANTHROPIC_MODEL` -- optional; defaults to `claude-sonnet-5-5`.
 - `ANTHROPIC_BASE_URL` -- not app config. The SDK reads it from the shell, so the app passes `baseURL` explicitly and only `.env.local` settings apply.
 
-Non-secret settings live in `config.yaml`: `profiles`, `channels` (exactly one with `test: true`), `comment.{min_chars,max_chars,brand,banned_phrases,brand_phrases}`, `limits.daily_max_comments`, `fetch.per_channel`, `typing.{min_delay_ms,max_delay_ms}`.
+Non-secret settings live in `config.yaml`: `profiles`, `channels` (exactly one with `test: true`), `comment.{min_chars,max_chars,brand,banned_phrases,brand_phrases}`, `limits.daily_max_comments`, `fetch.per_channel`, `typing.{min_delay_ms,max_delay_ms}`, `rising.{keyword,min_views,max_views,min_views_per_hour,published_within_hours,pages}` (the whole `rising` block is optional; zod defaults apply).
 
 ## Domain Glossary
 
@@ -207,14 +207,15 @@ Non-secret settings live in `config.yaml`: `profiles`, `channels` (exactly one w
 | 운영 규칙       | Operating Rules | Allowlist, One Per Video, Daily Cap                                        |
 | 차단            | Blocked         | Stopped by Operating Rules before starting; distinct from failed           |
 | 하루 상한       | Daily Cap       | Successful posts per local date across all profiles; default 10            |
-| 뜨기 직전 영상  | Rising Video    | Deferred bonus feature; draft only, never posted                           |
+| 뜨기 직전 영상  | Rising Video    | Bonus feature; found by '연애' search, draft only unless on an allowed channel |
+| 시간당 조회수   | Views Per Hour  | views ÷ hours since publish (average, single snapshot)                     |
 
 ## Context Map (Action-Based Routing)
 
 - **[src/lib/AGENTS.md](./src/lib/AGENTS.md)** -- Editing rules, repos, the SQLite schema, YouTube/caption/draft adapters, Playwright posting, the job runner, or tests.
 - **[src/app/AGENTS.md](./src/app/AGENTS.md)** -- Editing pages, Route Handlers, `src/components/`, shadcn primitives, or polling.
 - **[CONTEXT.md](./CONTEXT.md)** -- Naming anything user-visible or any domain identifier.
-- **[docs/adr/](./docs/adr/)** -- Touching framework choice, browser launch, YouTube data sources, or storage.
+- **[docs/adr/](./docs/adr/)** (0001-0005) -- Touching framework choice, browser launch, YouTube data sources, storage, or the Rising Video search and Views Per Hour definition (0005).
 - **[.scratch/marketing-agent/spec.md](./.scratch/marketing-agent/spec.md)** -- Needing the full contract: data model, pipelines, UI, review focus, risks.
 - **[.scratch/marketing-agent/issues/](./.scratch/marketing-agent/issues/)** -- Picking up, implementing, or reviewing an issue.
 - **[docs/agents/issue-tracker.md](./docs/agents/issue-tracker.md)** -- Updating an issue's Status line or Comments.

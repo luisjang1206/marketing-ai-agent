@@ -272,7 +272,7 @@ UI는 같은 함수 결과로 버튼을 미리 비활성화하고 툴팁에 메�
 | YouTube DOM 셀렉터 변경 | `poster.ts`에 셀렉터 상수 모음, `scripts/try-post.ts`로 즉시 재현. 실패 시 캡처가 남는다 |
 | 구글이 자동화 프로필 로그인 차단 | 실제 Chrome 채널 + persistent context(ADR-0002). 로그인은 사람이 직접 |
 | `ANTHROPIC_BASE_URL` 프록시 간섭 | 앱에서 `baseURL`을 명시, 구현 첫날 호출 테스트 |
-| Data API 할당량 | 목록 1회 ≈ 12유닛, 하루 10,000. 문제 없음. `search.list`(100)는 미룸 범위에만 |
+| Data API 할당량 | 목록 1회 ≈ 12유닛, 뜨기 직전 찾기 1회 ≈ 202유닛(`search.list` 100 × 2페이지 + `videos.list`, §18), 하루 10,000. 자동 갱신이 없어 문제 없음 |
 | yt-dlp 미설치/자막 없음 | 폴백 경로를 기본 테스트 케이스로 |
 | Next.js가 playwright를 번들하려 함 | `serverExternalPackages: ['playwright']` |
 
