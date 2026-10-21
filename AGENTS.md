@@ -114,7 +114,7 @@ These guidelines complement, never override, the Immutable Constraints below. Th
 1. Never post to the five designated channels during development. Real posting (`try:post`, manual runs) targets only videos whose channel ID equals the `test: true` channel in `config.yaml`.
 2. Never type, request, or store Google passwords or 2FA codes, and never bypass a CAPTCHA. A human performs login in the Chrome window the app opens.
 3. Never commit or print secrets. API keys live only in `.env.local`; the repository is public and only `.env.example` is committed.
-4. Never commit `data/`. Start demo recordings from an empty `data/`.
+4. Never commit `data/`. Start demo recordings after `pnpm reset:data` with the dev server off, so `data/` holds only `profiles/` (Google logins).
 5. Enforce Operating Rules on the server with `checkPostAllowed` before every post, in the order Allowlist -> One Per Video -> Daily Cap. Direct Links get the same allowlist check. Record each Blocked attempt as `posts(status='blocked', reason)`.
 6. Read every limit (40-120 chars, Daily Cap, channel list, typing delays) from `config.yaml` only. Never hardcode them.
 7. Drafts never present 운명원 as used first-hand; the brand appears only as hearsay. No links, no hashtags.
